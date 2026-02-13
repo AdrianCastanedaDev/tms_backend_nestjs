@@ -1,0 +1,2870 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["gis", "public"]
+}
+
+model geo_calles {
+  via_id        Int                    @id(map: "pk_geo_calles") @default(autoincrement())
+  ciu_id        Int?                   @db.SmallInt
+  via_tipo      String?                @db.VarChar(20)
+  via_nombre    String
+  via_vseek     String
+  via_vector    Unsupported("vector")?
+  geo_id        Int?
+  dic_via_id    Int?
+  via_estado    Boolean?
+  gis_ciudad    gis_gis_ciudad?        @relation(fields: [ciu_id], references: [ciu_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_geo_calles_gis_ciudad")
+  geo_puertas   gis_geo_puertas[]
+  geo_segmentos geo_segmentos[]
+
+  @@schema("gis")
+}
+
+model gis_geo_direccion {
+  geo_id         Int             @id(map: "pk_dis_dir_ext") @default(autoincrement())
+  dir_calle      String?
+  dir_puerta     String?         @db.VarChar(16)
+  dir_urbaniz    String?         @db.VarChar(80)
+  dir_bloque     String?         @db.VarChar(60)
+  dir_mza        String?         @db.VarChar(6)
+  dir_lote       String?         @db.VarChar(6)
+  dir_referencia String?
+  geo_puertas    gis_geo_puertas @relation(fields: [geo_id], references: [geo_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_geo_dir")
+
+  @@map("geo_direccion")
+  @@schema("gis")
+}
+
+model gis_geo_puertas {
+  geo_id        Int                      @id(map: "pk_geo_puertas") @default(autoincrement())
+  ciu_id        Int?                     @db.SmallInt
+  via_id        Int?
+  via_seg_id    BigInt?
+  cpos_id       Int?                     @db.SmallInt
+  geo_gps       Unsupported("geometry")?
+  geo_estado    Boolean?
+  geo_direccion gis_geo_direccion?
+  gis_ciudad    gis_gis_ciudad?          @relation(fields: [ciu_id], references: [ciu_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_geo_ciu")
+  gis_cpostal   gis_gis_cpostal?         @relation(fields: [cpos_id], references: [cpos_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_geo_cpos")
+  geo_segmentos geo_segmentos?           @relation(fields: [via_seg_id], references: [via_seg_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_geo_pue_geo_seg")
+  geo_calles    geo_calles?              @relation(fields: [via_id], references: [via_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_geo_pue_geo_via")
+
+  @@map("geo_puertas")
+  @@schema("gis")
+}
+
+model geo_segmentos {
+  via_seg_id    BigInt                   @id(map: "pk_geo_segmentos") @default(autoincrement())
+  via_id        Int?
+  via_lado      String?                  @db.Char(1)
+  via_inicio    Int?                     @db.SmallInt
+  via_final     Int?                     @db.SmallInt
+  via_direc     String?                  @db.Char(1)
+  via_linea     Unsupported("geometry")?
+  via_velocidad Int?                     @db.SmallInt
+  via_lote_ini  String?                  @db.Char(6)
+  via_lote_fin  String?                  @db.Char(4)
+  geo_puertas   gis_geo_puertas[]
+  geo_calles    geo_calles?              @relation(fields: [via_id], references: [via_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_geo_seg_geo_via")
+
+  @@schema("gis")
+}
+
+model gis_gis_ciu_dic {
+  dic_ciu_id  Int                    @id(map: "pk_gis_ciu_dic") @default(autoincrement())
+  ciu_id      Int?                   @db.SmallInt
+  dciu_nombre String?                @db.VarChar(100)
+  dciu_vector Unsupported("vector")?
+  dciu_fecupd DateTime?              @db.Timestamp(6)
+  gis_ciudad  gis_gis_ciudad?        @relation(fields: [ciu_id], references: [ciu_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_gis_ciu_dic")
+
+  @@map("gis_ciu_dic")
+  @@schema("gis")
+}
+
+model gis_gis_ciudad {
+  ciu_id        Int                      @id(map: "pk_gis_ciudad") @default(autoincrement()) @db.SmallInt
+  prv_id        Int?                     @db.SmallInt
+  ciu_ubigeo    String?                  @db.VarChar(6)
+  ciu_nombre    String?                  @db.VarChar(80)
+  ciu_nodos     Unsupported("geometry")?
+  ciu_estado    Boolean?
+  geo_calles    geo_calles[]
+  geo_puertas   gis_geo_puertas[]
+  gis_ciu_dic   gis_gis_ciu_dic[]
+  gis_provincia gis_gis_provincia?       @relation(fields: [prv_id], references: [prv_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_gis_ciu_gis_prv")
+  gis_cp_ciudad gis_cp_ciudad[]
+  direccion_log direccion_log[]
+
+  @@map("gis_ciudad")
+  @@schema("gis")
+}
+
+model gis_cp_ciudad {
+  cpos_ciu_id Int              @id(map: "pk_gis_cp_ciudad") @default(autoincrement()) @db.SmallInt
+  cpos_id     Int?             @db.SmallInt
+  ciu_id      Int?             @db.SmallInt
+  ciu_pje     Decimal?         @db.Decimal(8, 2)
+  gis_cpostal gis_gis_cpostal? @relation(fields: [cpos_id], references: [cpos_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_cp_ciu_gis_cpos")
+  gis_ciudad  gis_gis_ciudad?  @relation(fields: [ciu_id], references: [ciu_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_gis_cp_ciu")
+
+  @@schema("gis")
+}
+
+model gis_gis_cpostal {
+  cpos_id       Int                      @id(map: "pk_gis_cpostal") @default(autoincrement()) @db.SmallInt
+  cpos_codigo   String?                  @db.VarChar(6)
+  cpod_mapa     Unsupported("geometry")?
+  geo_puertas   gis_geo_puertas[]
+  gis_cp_ciudad gis_cp_ciudad[]
+
+  @@map("gis_cpostal")
+  @@schema("gis")
+}
+
+model gis_gis_provincia {
+  prv_id     Int                      @id(map: "pk_gis_provincia") @default(autoincrement()) @db.SmallInt
+  dep_id     Int?                     @db.SmallInt
+  prv_codigo String?                  @db.VarChar(3)
+  prv_nombre String?                  @db.VarChar(60)
+  prv_nodo   Unsupported("geometry")?
+  prv_estado Boolean?
+  gis_ciudad gis_gis_ciudad[]
+  gis_region gis_gis_region?          @relation(fields: [dep_id], references: [dep_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_gis_prv_gis_dep")
+
+  @@map("gis_provincia")
+  @@schema("gis")
+}
+
+model gis_gis_region {
+  dep_id        Int                      @id(map: "pk_gis_region") @default(autoincrement()) @db.SmallInt
+  dep_codigo    String?                  @db.VarChar(3)
+  dep_nombre    String?                  @db.VarChar(40)
+  dep_nodos     Unsupported("geometry")?
+  dep_estado    Boolean?
+  gis_provincia gis_gis_provincia[]
+
+  @@map("gis_region")
+  @@schema("gis")
+}
+
+model gis_tmp_puerta_calle_osm {
+  id                  Int                      @id @default(autoincrement())
+  geo_id              Int?                     @unique
+  osm_id              BigInt?
+  calle_nombre        String?
+  distancia_mts       Decimal?                 @db.Decimal(10, 2)
+  geom_conector       Unsupported("geometry")?
+  fecha_actualizacion DateTime?                @default(now()) @db.Timestamp(6)
+  ubigeo              String?                  @db.VarChar(6)
+
+  @@map("tmp_puerta_calle_osm")
+  @@schema("gis")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model gis_tmp_puertas_arequipa {
+  id_puer     Int?
+  tip_call    String?               @db.VarChar(40)
+  calle2      String?               @db.VarChar(200)
+  n_pta       String?               @db.VarChar(16)
+  tip_urb     String?               @db.VarChar(60)
+  nom_urb     String?               @db.VarChar(200)
+  mz          String?               @db.VarChar(10)
+  num_lote    String?               @db.VarChar(12)
+  dir_x       Float?                @db.Real
+  dir_y       Float?                @db.Real
+  dir_point   Unsupported("point")?
+  concatenado String?
+  ubigeo      String?               @db.VarChar(6)
+
+  @@map("tmp_puertas_arequipa")
+  @@ignore
+  @@schema("gis")
+}
+
+model admision_data {
+  dia_ao_id       Int             @id(map: "pk_admision_data")
+  ao_guias        Int?
+  ao_piezas       Int?
+  ao_volumen      Int?
+  ao_peso         Decimal?        @db.Decimal(12, 2)
+  ao_peso_vol     Decimal?        @db.Decimal(12, 2)
+  admision_diaria admision_diaria @relation(fields: [dia_ao_id], references: [dia_ao_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_admision_data")
+
+  @@schema("public")
+}
+
+model admision_diaria {
+  dia_ao_id     Int                @id(map: "pk_admision_diaria") @default(autoincrement())
+  shi_id        Int?               @db.SmallInt
+  service_id    Int?
+  ao_year       Int?               @db.SmallInt
+  ao_month      Int?               @db.SmallInt
+  ao_semana     Int?               @db.SmallInt
+  ao_dia        Int?               @db.SmallInt
+  sucursal_id   Int?               @db.SmallInt
+  ciu_id        Int?               @db.SmallInt
+  eve_id        Int?               @db.SmallInt
+  tpqt_id       Int?               @db.SmallInt
+  ao_fecha      DateTime?          @db.Date
+  suc_origen    Int?               @db.SmallInt
+  admision_data admision_data?
+  gis_ciudad    public_gis_ciudad? @relation(fields: [ciu_id], references: [ciu_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_ao_ciu")
+  chk_motivos   chk_motivos?       @relation(fields: [eve_id], references: [eve_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_ao_mot")
+  servicios     servicios?         @relation(fields: [service_id], references: [service_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_ao_serv")
+  shipper       shipper?           @relation(fields: [shi_id], references: [shi_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_ao_shi")
+  sucursal      sucursal?          @relation(fields: [sucursal_id], references: [sucursal_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_ao_suc")
+
+  @@index([shi_id, service_id, ao_year, ao_month, ao_fecha, sucursal_id, ciu_id, eve_id, tpqt_id], map: "idx_r2120")
+  @@schema("public")
+}
+
+model api_envios {
+  envio_id   Int     @id(map: "pk_api_envios")
+  doc_track  String? @db.VarChar(20)
+  doc_numero Int?
+  envios     envios  @relation(fields: [envio_id], references: [envio_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_api_env_env")
+
+  @@index([doc_numero], map: "idx_api_envios_doc_numero")
+  @@index([envio_id], map: "idx_api_envios_envio_id")
+  @@schema("public")
+}
+
+model api_piezas {
+  pieza_id     Int          @id(map: "pk_api_piezas")
+  pza_id       Int?
+  pza_track    String?      @db.VarChar(30)
+  pza_barra    String?      @db.VarChar(30)
+  envio_piezas envio_piezas @relation(fields: [pieza_id], references: [pieza_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_api_piezas_envio")
+
+  @@index([pza_id], map: "idx_api_piezas_pza_id")
+  @@index([pza_track], map: "idx_api_piezas_pza_track")
+  @@schema("public")
+}
+
+model areas_ruta {
+  area_id        Int              @id(map: "pk_areas_ruta") @default(autoincrement()) @db.SmallInt
+  area_nombre    String?          @db.VarChar(60)
+  area_estado    Boolean?
+  lote_ruta      lote_ruta[]
+  nb_grupo       nb_grupo[]
+  personal_move  personal_move[]
+  routes         routes[]
+  unidad_service unidad_service[]
+
+  @@schema("public")
+}
+
+model auth_group {
+  id                     Int                      @id @default(autoincrement())
+  name                   String                   @unique @db.VarChar(150)
+  auth_group_permissions auth_group_permissions[]
+  auth_user_groups       auth_user_groups[]
+
+  @@index([name], map: "auth_group_name_a6ea08ec_like")
+  @@schema("public")
+}
+
+/// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
+model auth_group_permissions {
+  id              BigInt          @id @default(autoincrement())
+  group_id        Int
+  permission_id   Int
+  auth_permission auth_permission @relation(fields: [permission_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "auth_group_permissio_permission_id_84c5c92e_fk_auth_perm")
+  auth_group      auth_group      @relation(fields: [group_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "auth_group_permissions_group_id_b120cbf9_fk_auth_group_id")
+
+  @@unique([group_id, permission_id], map: "auth_group_permissions_group_id_permission_id_0cd325b0_uniq")
+  @@index([group_id], map: "auth_group_permissions_group_id_b120cbf9")
+  @@index([permission_id], map: "auth_group_permissions_permission_id_84c5c92e")
+  @@schema("public")
+}
+
+/// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
+model auth_permission {
+  id                         Int                          @id @default(autoincrement())
+  name                       String                       @db.VarChar(255)
+  content_type_id            Int
+  codename                   String                       @db.VarChar(100)
+  auth_group_permissions     auth_group_permissions[]
+  django_content_type        django_content_type          @relation(fields: [content_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "auth_permission_content_type_id_2f476e4b_fk_django_co")
+  auth_user_user_permissions auth_user_user_permissions[]
+
+  @@unique([content_type_id, codename], map: "auth_permission_content_type_id_codename_01ab375a_uniq")
+  @@index([content_type_id], map: "auth_permission_content_type_id_2f476e4b")
+  @@schema("public")
+}
+
+model auth_user {
+  id                         Int                          @id @default(autoincrement())
+  password                   String                       @db.VarChar(128)
+  last_login                 DateTime?                    @db.Timestamptz(6)
+  is_superuser               Boolean
+  username                   String                       @unique @db.VarChar(150)
+  first_name                 String                       @db.VarChar(150)
+  last_name                  String                       @db.VarChar(150)
+  email                      String                       @db.VarChar(254)
+  is_staff                   Boolean
+  is_active                  Boolean
+  date_joined                DateTime                     @db.Timestamptz(6)
+  auth_user_groups           auth_user_groups[]
+  auth_user_user_permissions auth_user_user_permissions[]
+
+  @@index([username], map: "auth_user_username_6821ab7c_like")
+  @@schema("public")
+}
+
+/// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
+model auth_user_groups {
+  id         BigInt     @id @default(autoincrement())
+  user_id    Int
+  group_id   Int
+  auth_group auth_group @relation(fields: [group_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "auth_user_groups_group_id_97559544_fk_auth_group_id")
+  auth_user  auth_user  @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "auth_user_groups_user_id_6a12ed8b_fk_auth_user_id")
+
+  @@unique([user_id, group_id], map: "auth_user_groups_user_id_group_id_94350c0c_uniq")
+  @@index([group_id], map: "auth_user_groups_group_id_97559544")
+  @@index([user_id], map: "auth_user_groups_user_id_6a12ed8b")
+  @@schema("public")
+}
+
+/// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
+model auth_user_user_permissions {
+  id              BigInt          @id @default(autoincrement())
+  user_id         Int
+  permission_id   Int
+  auth_permission auth_permission @relation(fields: [permission_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "auth_user_user_permi_permission_id_1fbb5f2c_fk_auth_perm")
+  auth_user       auth_user       @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "auth_user_user_permissions_user_id_a95ead1b_fk_auth_user_id")
+
+  @@unique([user_id, permission_id], map: "auth_user_user_permissions_user_id_permission_id_14a6b632_uniq")
+  @@index([permission_id], map: "auth_user_user_permissions_permission_id_1fbb5f2c")
+  @@index([user_id], map: "auth_user_user_permissions_user_id_a95ead1b")
+  @@schema("public")
+}
+
+model bot_control {
+  bot_id       Int       @id(map: "pk_bot_control") @default(autoincrement()) @db.SmallInt
+  bot_descri   String?   @db.VarChar(60)
+  bot_last_id  Int?
+  bot_last_run DateTime? @db.Timestamp(6)
+  bot_estado   Boolean?
+  bot_log      bot_log[]
+
+  @@schema("public")
+}
+
+model bot_log {
+  bot_log_id    Int             @id(map: "pk_bot_log") @default(autoincrement())
+  bot_id        Int?            @db.SmallInt
+  bot_run       DateTime?       @db.Timestamp(6)
+  bot_id_ini    Int?
+  bot_id_fin    Int?
+  bot_dat_tot   Int?
+  bot_control   bot_control?    @relation(fields: [bot_id], references: [bot_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_bot_log_control")
+  bot_stadistic bot_stadistic?
+  direccion_geo direccion_geo[]
+
+  @@schema("public")
+}
+
+model bot_stadistic {
+  bot_log_id    Int     @id(map: "pk_bot_stadistic")
+  geo_tot_auto  Int?
+  geo_sin_gps   Int?
+  geo_dir_error Int?
+  geo_tot_man   Int?
+  bot_log       bot_log @relation(fields: [bot_log_id], references: [bot_log_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_bot_stadistic_log")
+
+  @@schema("public")
+}
+
+model cargos {
+  cargo_id        Int               @id(map: "pk_cargos") @db.SmallInt
+  car_descri      String?           @db.VarChar(60)
+  car_estado      Boolean?
+  personal_move   personal_move[]
+  personal_status personal_status[]
+
+  @@schema("public")
+}
+
+model checkpoint {
+  chk_id      Int           @id(map: "pk_control") @db.SmallInt
+  chk_codigo  String?       @db.Char(3)
+  chk_nombre  String?       @db.VarChar(40)
+  chk_estado  Boolean?
+  chk_motivos chk_motivos[]
+
+  @@index([chk_id], map: "idx_checkpoint_chk_id")
+  @@schema("public")
+}
+
+model chk_motivos {
+  eve_id          Int               @id(map: "pk_chk_motivos") @db.SmallInt
+  chk_id          Int?              @db.SmallInt
+  eve_codigo      String?           @db.Char(2)
+  eve_descri      String?           @db.VarChar(40)
+  eve_estado      Boolean?
+  admision_diaria admision_diaria[]
+  checkpoint      checkpoint?       @relation(fields: [chk_id], references: [chk_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_chk_motivos")
+  envio_estado    envio_estado[]
+  envio_piezas    envio_piezas[]
+  lote_piezas     lote_piezas[]
+  novedad_piezas  novedad_piezas[]
+  route_delivery  route_delivery[]
+
+  @@index([chk_id], map: "idx_chk_motivos_chk_id")
+  @@index([eve_id], map: "idx_chk_motivos_eve_id")
+  @@schema("public")
+}
+
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model cliente_canal {
+  cli_env_id     Int            @id(map: "pk_cliente_canal")
+  cli_email      String?        @db.VarChar(80)
+  cli_tel_a      String?        @db.VarChar(20)
+  cli_tel_b      String?        @db.VarChar(20)
+  cli_tel_c      String?        @db.VarChar(20)
+  cliente_envios cliente_envios @relation(fields: [cli_env_id], references: [cli_env_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_cli_can")
+
+  @@index([cli_env_id], map: "idx_cliente_canal_cli_env_id")
+  @@index([cli_tel_a], map: "idx_cliente_canal_cli_tel_a")
+  @@index([cli_tel_b], map: "idx_cliente_canal_cli_tel_b")
+  @@index([cli_tel_c], map: "idx_cliente_canal_cli_tel_c")
+  @@schema("public")
+}
+
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model cliente_datos {
+  cli_id       Int      @id(map: "pk_cliente_datos")
+  cli_nombre   String?  @db.VarChar(120)
+  cli_apellido String?  @db.VarChar(80)
+  clientes     clientes @relation(fields: [cli_id], references: [cli_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_cli_dat_cli")
+
+  @@index([cli_id], map: "idx_cliente_datos_cli_id")
+  @@schema("public")
+}
+
+model cliente_diccionary {
+  cli_dic_id Int       @id(map: "pk_cliente_diccionary") @default(autoincrement())
+  cli_id     Int?
+  shi_id     Int?      @db.SmallInt
+  cli_nombre String?   @db.VarChar(120)
+  clientes   clientes? @relation(fields: [cli_id], references: [cli_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_cli_dic_cli")
+  shipper    shipper?  @relation(fields: [shi_id], references: [shi_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_cli_shi")
+
+  @@unique([cli_id, cli_nombre], map: "idx_unique_cli_id_cli_nombre")
+  @@index([cli_nombre], map: "idx_cliente_diccionary_cli_nombre")
+  @@schema("public")
+}
+
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model cliente_envios {
+  cli_env_id    Int            @id(map: "pk_cliente_envios") @default(autoincrement())
+  shi_id        Int?
+  cli_codigo    String?        @db.Char(16)
+  cli_nombre    String?        @db.VarChar(120)
+  cli_apellido  String?        @db.VarChar(80)
+  cli_id        Int?
+  cli_id_api    Int?
+  cliente_canal cliente_canal?
+  clientes      clientes?      @relation(fields: [cli_id], references: [cli_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_cli_env_cli")
+  shipper       shipper?       @relation(fields: [shi_id], references: [shi_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_cli_env_shi")
+  envios        envios[]
+
+  @@index([cli_env_id], map: "idx_cliente_envios_cli_env_id")
+  @@index([cli_id], map: "idx_cliente_envios_cli_id")
+  @@index([cli_id_api], map: "idx_cliente_envios_cli_id_api")
+  @@index([shi_id], map: "idx_cliente_envios_shi_id")
+  @@schema("public")
+}
+
+model clientes {
+  cli_id             Int                  @id(map: "pk_clientes") @default(autoincrement())
+  shi_id             Int?                 @db.SmallInt
+  cli_codigo         String?              @db.Char(16)
+  cli_nrodoc         String?              @db.Char(16)
+  cli_estado         Int?                 @db.SmallInt
+  cliente_datos      cliente_datos?
+  cliente_diccionary cliente_diccionary[]
+  cliente_envios     cliente_envios[]
+  shipper            shipper?             @relation(fields: [shi_id], references: [shi_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_cli_shi")
+  dcliente           dcliente[]
+  eclientes          eclientes[]
+  tcliente           tcliente[]
+
+  @@index([cli_id], map: "idx_clientes_cli_id")
+  @@index([shi_id], map: "idx_clientes_shi_id")
+  @@schema("public")
+}
+
+model dcliente {
+  cli_dir_id Int       @id(map: "pk_dir_diccionary") @default(autoincrement())
+  cli_id     Int?
+  geo_id     Int?
+  fec_creado DateTime? @db.Date
+  fec_update DateTime? @db.Timestamp(6)
+  clientes   clientes? @relation(fields: [cli_id], references: [cli_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dcli_cli")
+
+  @@unique([cli_id, geo_id], map: "unique_cli_geo")
+  @@schema("public")
+}
+
+model direccion_bad {
+  dir_id      Int         @id(map: "pk_direccion_bad")
+  tbad_id     Int?        @db.SmallInt
+  usuario_id  Int?
+  fec_update  DateTime?   @db.Timestamp(6)
+  dir_apunts  String?     @db.VarChar(200)
+  direcciones direcciones @relation(fields: [dir_id], references: [dir_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dir_bad_dir")
+  usuarios    usuarios?   @relation(fields: [usuario_id], references: [usuario_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dir_bad_usu")
+
+  @@schema("public")
+}
+
+model direccion_geo {
+  dir_id      Int                @id(map: "pk_direccion_geo")
+  dir_clean   String?            @db.VarChar(300)
+  dir_norma   String?            @db.VarChar(280)
+  dir_fx_l    Float?             @db.Real
+  dir_fx_s    Float?             @db.Real
+  dir_gps_mts Float?             @db.Real
+  dir_estado  Int?               @db.SmallInt
+  ciu_id      Int?               @db.SmallInt
+  bot_log_id  Int?
+  bot_log     bot_log?           @relation(fields: [bot_log_id], references: [bot_log_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dir_geo_bot_log")
+  gis_ciudad  public_gis_ciudad? @relation(fields: [ciu_id], references: [ciu_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dir_geo_ciu")
+  direcciones direcciones        @relation(fields: [dir_id], references: [dir_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_direccion_geo_direcciones")
+
+  @@index([dir_id], map: "idx_direccion_geo_dir_id")
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model direccion_log {
+  dir_log_id  Int             @id(map: "pk_direccion_log") @default(autoincrement())
+  dir_id      Int
+  usuario_id  Int?
+  dir_action  Int?            @db.SmallInt
+  fec_update  DateTime?       @db.Timestamp(6)
+  ciu_id      Int?
+  gis_ciudad  gis_gis_ciudad? @relation(fields: [ciu_id], references: [ciu_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dir_log_ciu")
+  direcciones direcciones     @relation(fields: [dir_id], references: [dir_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dir_log_dir")
+  usuarios    usuarios?       @relation(fields: [usuario_id], references: [usuario_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dir_log_usu")
+
+  @@schema("public")
+}
+
+model direccion_via {
+  dir_id         Int         @id(map: "pk_direcion_via")
+  dir_calle      String?     @db.VarChar(220)
+  dir_numero     String?     @db.VarChar(16)
+  dir_ubaniz     String?     @db.VarChar(80)
+  dir_bloque     String?     @db.VarChar(60)
+  dir_mza        String?     @db.VarChar(6)
+  dir_lote       String?     @db.VarChar(6)
+  dir_referencia String?     @db.VarChar(250)
+  dir_ciudad     String?     @db.VarChar(60)
+  dir_interior   String?     @db.VarChar(30)
+  direcciones    direcciones @relation(fields: [dir_id], references: [dir_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dir_via_dir")
+
+  @@index([dir_id], map: "idx_direccion_via_dir_id")
+  @@schema("public")
+}
+
+model direcciones {
+  dir_id                   Int                       @id(map: "pk_direcciones") @default(autoincrement())
+  ciu_id                   Int?                      @db.SmallInt
+  dir_gps                  Unsupported("point")?
+  geo_id                   Int?
+  dir_estado               String?                   @db.VarChar
+  dir_api                  Int?
+  zona_id                  Int?
+  direccion_bad            direccion_bad?
+  direccion_geo            direccion_geo?
+  direccion_log            direccion_log[]
+  direccion_via            direccion_via?
+  gis_ciudad               public_gis_ciudad?        @relation(fields: [ciu_id], references: [ciu_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_dir_gis_ciu")
+  envio_entrega            envio_entrega[]
+  envios                   envios[]
+  envios_valid             envios_valid[]
+  geo_asistido             geo_asistido[]
+  geo_new_door             geo_new_door?
+  lote_piezas              lote_piezas[]
+  tmp_distrito_direcciones tmp_distrito_direcciones?
+
+  @@index([ciu_id], map: "idx_direcciones_ciu_id")
+  @@index([dir_api], map: "idx_direcciones_dir_api")
+  @@index([dir_id], map: "idx_direcciones_dir_id")
+  @@schema("public")
+}
+
+model django_content_type {
+  id              Int               @id @default(autoincrement())
+  app_label       String            @db.VarChar(100)
+  model           String            @db.VarChar(100)
+  auth_permission auth_permission[]
+
+  @@unique([app_label, model], map: "django_content_type_app_label_model_76bd3d3b_uniq")
+  @@schema("public")
+}
+
+model eclientes {
+  ecli_id    Int       @id(map: "pk_eclientes") @default(autoincrement())
+  cli_id     Int
+  mail_id    Int
+  fec_creado DateTime? @db.Date
+  clientes   clientes  @relation(fields: [cli_id], references: [cli_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_ecli_cli")
+
+  @@unique([cli_id, mail_id], map: "idx_unique_cli_id_mail_id")
+  @@index([cli_id], map: "idx_eclientes_cli_id")
+  @@index([mail_id], map: "idx_eclientes_mail_id")
+  @@schema("public")
+}
+
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model emails {
+  mail_id        Int              @id(map: "pk_emails") @default(autoincrement())
+  mail_sha       String?          @db.Char(40)
+  mail_mail      String?          @unique(map: "idx_unique_mail_mail") @db.VarChar(120)
+  mail_server    String?          @db.VarChar(50)
+  mail_estado    Int?             @db.SmallInt
+  mail_creado    DateTime?        @db.Date
+  envio_contacto envio_contacto[]
+  iridio_in      iridio_in?
+
+  @@schema("public")
+}
+
+model envio_chk {
+  envio_id Int       @id(map: "pk_envio_and")
+  fec_ss   DateTime? @db.Date
+  fec_ao   DateTime? @db.Date
+  fec_dd   DateTime? @db.Date
+  fec_ad   DateTime? @db.Date
+  fec_er   DateTime? @db.Date
+  envios   envios    @relation(fields: [envio_id], references: [envio_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_envio_ans_env")
+
+  @@index([envio_id], map: "idx_envio_chk_envio_id")
+  @@index([fec_ao], map: "idx_envio_chk_fec_ao")
+  @@index([fec_ss], map: "idx_envio_chk_fec_ss")
+  @@schema("public")
+}
+
+model envio_contacto {
+  envio_id                                     Int        @id(map: "pk_envio_contacto")
+  mail_id                                      Int?
+  tel_id                                       Int?
+  tel_id_2                                     Int?
+  emails                                       emails?    @relation(fields: [mail_id], references: [mail_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_env_cont_email")
+  envios_geo                                   envios_geo @relation(fields: [envio_id], references: [envio_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_env_cont_env_geo")
+  telefonos_envio_contacto_tel_idTotelefonos   telefonos? @relation("envio_contacto_tel_idTotelefonos", fields: [tel_id], references: [tel_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_env_cont_tel")
+  telefonos_envio_contacto_tel_id_2Totelefonos telefonos? @relation("envio_contacto_tel_id_2Totelefonos", fields: [tel_id_2], references: [tel_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_env_cont_tel2")
+
+  @@schema("public")
+}
+
+model envio_entrega {
+  envio_id    Int                   @id(map: "pk_envio_entrega")
+  dl_gps      Unsupported("point")?
+  dir_id      Int?
+  direcciones direcciones?          @relation(fields: [dir_id], references: [dir_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_env_dl_dir")
+  envios      envios                @relation(fields: [envio_id], references: [envio_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_env_dl_env")
+
+  @@schema("public")
+}
+
+model envio_estado {
+  envio_id    Int          @id(map: "pk_envio_estado")
+  eve_id      Int?         @db.SmallInt
+  chk_fecha   DateTime?    @db.Date
+  sucursal_id Int?         @db.SmallInt
+  sucursal    sucursal?    @relation(fields: [sucursal_id], references: [sucursal_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_env_estado_suc")
+  chk_motivos chk_motivos? @relation(fields: [eve_id], references: [eve_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_envio_chk_mot")
+  envios      envios       @relation(fields: [envio_id], references: [envio_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_envio_estado")
+
+  @@index([envio_id], map: "idx_envio_estado_envio_id")
+  @@schema("public")
+}
+
+model envio_owner {
+  envio_id    Int    @id(map: "pk_envio_owner")
+  sucursal_id Int?   @db.SmallInt
+  tpza_id     Int?   @db.SmallInt
+  cli_id      Int?
+  tel_id      Int?
+  mail_id     Int?
+  envios      envios @relation(fields: [envio_id], references: [envio_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_envio_owner")
+
+  @@schema("public")
+}
+
+model envio_piezas {
+  pieza_id       Int              @id(map: "pk_envio_piezas") @default(autoincrement())
+  envio_id       Int?
+  sucursal_id    Int?
+  eve_id         Int?             @db.SmallInt
+  eve_fecha      DateTime?        @db.Timestamp(6)
+  pza_estado     Boolean?
+  tpza_id        Int?             @db.SmallInt
+  api_piezas     api_piezas?
+  envios         envios?          @relation(fields: [envio_id], references: [envio_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_env_pza")
+  sucursal       sucursal?        @relation(fields: [sucursal_id], references: [sucursal_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_env_pzas_suc")
+  chk_motivos    chk_motivos?     @relation(fields: [eve_id], references: [eve_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_envio_pza_mot")
+  lote_piezas    lote_piezas[]
+  nb_piezas_out  nb_piezas_out[]
+  novedad_piezas novedad_piezas[]
+  pieza_peso     pieza_peso?
+  route_delivery route_delivery[]
+
+  @@schema("public")
+}
+
+model envios {
+  envio_id       Int              @id(map: "pk_envios") @default(autoincrement())
+  service_id     Int?             @db.SmallInt
+  cli_env_id     Int?
+  dir_id         Int?
+  eve_id         Int?             @db.SmallInt
+  api_envios     api_envios?
+  envio_chk      envio_chk?
+  envio_entrega  envio_entrega?
+  envio_estado   envio_estado?
+  envio_owner    envio_owner?
+  envio_piezas   envio_piezas[]
+  cliente_envios cliente_envios?  @relation(fields: [cli_env_id], references: [cli_env_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_env_cli_env")
+  direcciones    direcciones?     @relation(fields: [dir_id], references: [dir_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_env_dir")
+  servicios      servicios?       @relation(fields: [service_id], references: [service_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_env_serv")
+  envios_geo     envios_geo?
+  envios_valid   envios_valid?
+  geo_new_door   geo_new_door[]
+  lote_piezas    lote_piezas[]
+  nb_piezas_out  nb_piezas_out[]
+  novedad_piezas novedad_piezas[]
+  route_delivery route_delivery[]
+
+  @@index([cli_env_id], map: "idx_envios_cli_env_id")
+  @@index([dir_id], map: "idx_envios_dir_id")
+  @@index([envio_id], map: "idx_envios_envio_id")
+  @@schema("public")
+}
+
+model envios_geo {
+  envio_id       Int                   @id(map: "pk_envios_geo")
+  env_token      String?               @db.Char(40)
+  fec_email      DateTime?             @db.Timestamp(6)
+  geo_estado     Int?                  @db.SmallInt
+  ciu_id         Int?                  @db.SmallInt
+  cpos_id        Int?                  @db.SmallInt
+  geo_id         Int?
+  dir_gps        Unsupported("point")?
+  fec_update     DateTime?             @db.Date
+  hor_update     DateTime?             @db.Time(6)
+  envio_contacto envio_contacto?
+  gis_ciudad     public_gis_ciudad?    @relation(fields: [ciu_id], references: [ciu_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_env_geo_ciu")
+  gis_cpostal    public_gis_cpostal?   @relation(fields: [cpos_id], references: [cpos_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_env_geo_cpos")
+  envios         envios                @relation(fields: [envio_id], references: [envio_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_env_geo_env")
+
+  @@schema("public")
+}
+
+model envios_valid {
+  envio_id       Int          @id(map: "pk_envios_valid")
+  dir_id         Int?
+  dir_calle      String?      @db.VarChar(400)
+  dir_puerta     String?      @db.VarChar(16)
+  dir_urbaniz    String?      @db.VarChar(80)
+  dir_bloque     String?      @db.VarChar(60)
+  dir_mza        String?      @db.VarChar(6)
+  dir_lote       String?      @db.VarChar(6)
+  dir_referencia String?      @db.VarChar(250)
+  dir_interior   String?      @db.VarChar(30)
+  direcciones    direcciones? @relation(fields: [dir_id], references: [dir_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_env_val_dir")
+  envios         envios       @relation(fields: [envio_id], references: [envio_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_env_val_env")
+
+  @@schema("public")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model existe {
+  exists Boolean?
+
+  @@ignore
+  @@schema("public")
+}
+
+model geo_asistido {
+  geo_log_id  Int          @id(map: "pk_geo_asistido") @default(autoincrement())
+  dir_id      Int?
+  usuario_id  Int?
+  fec_upload  DateTime?    @db.Timestamp(6)
+  dir_estado  Boolean?
+  per_jor_id  Int?
+  ciu_id      Int?         @db.SmallInt
+  direcciones direcciones? @relation(fields: [dir_id], references: [dir_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_geo_asis_dir")
+  usuarios    usuarios?    @relation(fields: [usuario_id], references: [usuario_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_geo_asis_usu")
+
+  @@index([dir_id], map: "idx_geo_asistido_dir_id")
+  @@index([per_jor_id], map: "idx_geo_asistido_per_jor_id")
+  @@index([usuario_id], map: "idx_geo_asistido_usuario_id")
+  @@schema("public")
+}
+
+/// This table is a partition table and requires additional setup for migrations. Visit https://pris.ly/d/partition-tables for more info.
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model geo_diccionary {
+  dic_dir_id Int
+  ciu_id     Int?    @db.SmallInt
+  dir_calle  String? @db.VarChar(280)
+  geo_id     Int?
+  dir_norma  String? @db.VarChar(250)
+
+  @@unique([geo_id, ciu_id, dir_calle], map: "unique_dir_calle_geo_dir")
+  @@index([dir_norma(ops: raw("gin_trgm_ops"))], map: "idx_geo_diccionary_dir_norma", type: Gin)
+  @@index([geo_id], map: "idx_geo_diccionary_geo_dir")
+  @@index([geo_id], map: "idx_geo_diccionary_geo_id")
+  @@ignore
+  @@schema("public")
+}
+
+model public_geo_direccion {
+  geo_id         Int     @id(map: "pk_dis_dir_ext") @default(autoincrement())
+  dir_calle      String? @db.VarChar(220)
+  dir_puerta     String? @db.VarChar(16)
+  dir_urbaniz    String? @db.VarChar(80)
+  dir_bloque     String? @db.VarChar(60)
+  dir_mza        String? @db.VarChar(6)
+  dir_lote       String? @db.VarChar(6)
+  dir_referencia String? @db.VarChar(250)
+
+  @@index([geo_id], map: "idx_geo_direccion_geo_id")
+  @@map("geo_direccion")
+  @@schema("public")
+}
+
+model geo_inventary {
+  geo_inv_id Int     @id(map: "pk_geo_inventary") @default(autoincrement())
+  geo_id     Int?
+  dir_calle  String? @db.VarChar(400)
+  dir_repit  Int?
+  dir_estado Int?    @db.SmallInt
+
+  @@unique([geo_id, dir_calle], map: "unique_geo_dir_calle")
+  @@index([geo_id], map: "idx_geo_inventary_geo_id")
+  @@schema("public")
+}
+
+model geo_new_door {
+  dir_id      Int                @id(map: "pk_geo_new_door")
+  geo_id      Int?
+  ciu_id      Int?               @db.SmallInt
+  envio_id    Int?
+  geo_fecha   DateTime?          @db.Date
+  geo_hora    DateTime?          @db.Time(6)
+  geo_id_new  Int?
+  usuario_id  Int?
+  fec_create  DateTime?          @db.Timestamp(6)
+  dir_estado  Int?               @db.SmallInt
+  direcciones direcciones        @relation(fields: [dir_id], references: [dir_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_geo_new_dir")
+  envios      envios?            @relation(fields: [envio_id], references: [envio_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_geo_new_env")
+  gis_ciudad  public_gis_ciudad? @relation(fields: [ciu_id], references: [ciu_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_geo_new_gis")
+  usuarios    usuarios?          @relation(fields: [usuario_id], references: [usuario_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_geo_new_usu")
+
+  @@schema("public")
+}
+
+/// This table is a partition table and requires additional setup for migrations. Visit https://pris.ly/d/partition-tables for more info.
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model public_geo_puertas {
+  geo_id      Int                   @default(autoincrement())
+  ciu_id      Int?                  @db.SmallInt
+  cpos_id     Int?                  @db.SmallInt
+  geo_gps     Unsupported("point")?
+  geo_estado  Boolean?
+  gis_ciudad  public_gis_ciudad?    @relation(fields: [ciu_id], references: [ciu_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_gis_dir_ciu")
+  gis_cpostal public_gis_cpostal?   @relation(fields: [cpos_id], references: [cpos_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_gis_dir_cpos")
+
+  @@unique([geo_id, ciu_id], map: "idx_geo_puertas_geo_id_unique")
+  @@index([ciu_id], map: "idx_geo_puertas_ciu_id")
+  @@index([geo_gps], map: "idx_geo_puertas_geo_gps", type: Gist)
+  @@map("geo_puertas")
+  @@ignore
+  @@schema("public")
+}
+
+model geo_zonas {
+  geo_zon_id Int       @id(map: "pk_geo_zonas") @default(autoincrement())
+  geo_id     Int?
+  zona_id    Int?
+  fec_update DateTime? @db.Date
+  zonas      zonas?    @relation(fields: [zona_id], references: [zona_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_geo_zon_zon")
+
+  @@index([geo_id], map: "idx_geo_zonas_geo_id")
+  @@index([zona_id], map: "idx_geo_zonas_zona_id")
+  @@schema("public")
+}
+
+model geomap_log {
+  map_log_id Int       @id(map: "pk_geomap_log") @default(autoincrement())
+  usuario_id Int?
+  geo_id     Int?
+  tact_id    Int?      @db.SmallInt
+  log_fecha  DateTime? @db.Date
+  log_hora   DateTime? @db.Timetz(6)
+  per_jor_id Int?
+  usuarios   usuarios? @relation(fields: [usuario_id], references: [usuario_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_geo_log_usu")
+
+  @@index([log_fecha], map: "idx_geomap_log_log_fecha")
+  @@index([map_log_id], map: "idx_geomap_log_map_log_id")
+  @@index([per_jor_id], map: "idx_geomap_log_per_jor_id")
+  @@index([usuario_id], map: "idx_geomap_log_usuario_id")
+  @@schema("public")
+}
+
+model public_gis_ciu_dic {
+  dic_ciu_id  Int                @id(map: "pk_gis_ciu_dic") @default(autoincrement())
+  ciu_id      Int?               @db.SmallInt
+  dciu_sha    String?            @db.Char(40)
+  dciu_nombre String?            @db.VarChar(80)
+  dciu_fecupd DateTime?          @db.Timestamp(6)
+  gis_ciudad  public_gis_ciudad? @relation(fields: [ciu_id], references: [ciu_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_gis_ciu_dic")
+
+  @@map("gis_ciu_dic")
+  @@schema("public")
+}
+
+model gis_ciu_mapa {
+  ciu_map_id  Int                   @id(map: "pk_gis_ciu_mapa") @default(autoincrement())
+  ciu_id      Int?                  @db.SmallInt
+  ciu_sequenc Int?                  @db.SmallInt
+  ciu_point   Unsupported("point")?
+
+  @@schema("public")
+}
+
+model public_gis_ciudad {
+  ciu_id          Int                   @id(map: "pk_gis_ciudad") @default(autoincrement()) @db.SmallInt
+  prv_id          Int?                  @db.SmallInt
+  ciu_ubigeo      String?               @db.VarChar(6)
+  ciu_nombre      String?               @db.VarChar(80)
+  ciu_gps         Unsupported("point")?
+  ciu_estado      Boolean?
+  admision_diaria admision_diaria[]
+  direccion_geo   direccion_geo[]
+  direcciones     direcciones[]
+  envios_geo      envios_geo[]
+  geo_new_door    geo_new_door[]
+  geo_puertas     public_geo_puertas[]  @ignore
+  gis_ciu_dic     public_gis_ciu_dic[]
+  gis_provincia   public_gis_provincia? @relation(fields: [prv_id], references: [prv_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_gis_ciu_gis_prv")
+  grupo_ciudad    grupo_ciudad[]
+  leadtime_ubigeo leadtime_ubigeo[]
+  lote_ruta       lote_ruta[]
+  plan_ciudad     plan_ciudad[]
+  routes          routes[]
+  suc_cobertura   suc_cobertura[]
+  zonas           zonas[]
+
+  @@index([ciu_id], map: "idx_gis_ciudad_ciu_id")
+  @@index([prv_id], map: "idx_gis_ciudad_prv_id")
+  @@index([ciu_ubigeo], map: "idx_gis_ciudad_ubigeo")
+  @@map("gis_ciudad")
+  @@schema("public")
+}
+
+model public_gis_cpostal {
+  cpos_id     Int                  @id(map: "pk_gis_cpostal") @default(autoincrement()) @db.SmallInt
+  cpos_codigo String?              @db.VarChar(6)
+  envios_geo  envios_geo[]
+  geo_puertas public_geo_puertas[] @ignore
+
+  @@map("gis_cpostal")
+  @@schema("public")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model gis_envio_ubigeo {
+  ciu_id     Int?
+  ciu_estado Boolean?
+
+  @@ignore
+  @@schema("public")
+}
+
+model public_gis_provincia {
+  prv_id     Int                 @id(map: "pk_gis_provincia") @default(autoincrement()) @db.SmallInt
+  dep_id     Int?                @db.SmallInt
+  prv_codigo String?             @db.VarChar(3)
+  prv_nombre String?             @db.VarChar(60)
+  prv_estado Boolean?
+  gis_ciudad public_gis_ciudad[]
+  gis_region public_gis_region?  @relation(fields: [dep_id], references: [dep_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_gis_prv_gis_dep")
+
+  @@index([prv_id], map: "idx_gis_provincia_prv_id")
+  @@map("gis_provincia")
+  @@schema("public")
+}
+
+model public_gis_region {
+  dep_id        Int                    @id(map: "pk_gis_region") @default(autoincrement()) @db.SmallInt
+  dep_codigo    String?                @db.VarChar(3)
+  dep_nombre    String?                @db.VarChar(40)
+  dep_estado    Boolean?
+  gis_provincia public_gis_provincia[]
+
+  @@map("gis_region")
+  @@schema("public")
+}
+
+model grupo {
+  gru_id       Int            @id(map: "pk_grupo") @default(autoincrement()) @db.SmallInt
+  sucursal_id  Int?           @db.SmallInt
+  gru_codigo   String?        @db.VarChar(4)
+  gru_nombre   String?        @db.VarChar(40)
+  gru_estado   Boolean?
+  gru_tipo     Int?           @db.SmallInt
+  area_id      Int?           @db.SmallInt
+  gru_capacid  Int?           @db.SmallInt
+  sucursal     sucursal?      @relation(fields: [sucursal_id], references: [sucursal_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_grupo_suc")
+  grupo_ciudad grupo_ciudad[]
+  lote_ruta    lote_ruta[]
+  routes       routes[]
+
+  @@schema("public")
+}
+
+model grupo_ciudad {
+  gru_ciu_id  Int                @id(map: "pk_grupo_ciudad") @default(autoincrement()) @db.SmallInt
+  gru_id      Int?               @db.SmallInt
+  ciu_id      Int?               @db.SmallInt
+  fec_desde   DateTime?          @db.Date
+  fec_baja    DateTime?          @db.Date
+  ciu_estado  Boolean?
+  tpza_lite   Boolean?
+  tpza_medium Boolean?
+  tpza_big    Boolean?
+  ciu_product Int?               @db.SmallInt
+  gis_ciudad  public_gis_ciudad? @relation(fields: [ciu_id], references: [ciu_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_gru_ciu_gru")
+  grupo       grupo?             @relation(fields: [gru_id], references: [gru_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_grupo_ciudad")
+
+  @@schema("public")
+}
+
+model horarios {
+  hora_id         Int               @id(map: "pk_horarios") @default(autoincrement()) @db.SmallInt
+  thor_id         Int?              @db.SmallInt
+  hor_inicio      DateTime?         @db.Time(6)
+  hor_salida      DateTime?         @db.Time(6)
+  hor_estado      Boolean?
+  personal_jornal personal_jornal[]
+  personal_move   personal_move[]
+  personal_status personal_status[]
+
+  @@schema("public")
+}
+
+model iridio_in {
+  iridio_id   Int        @id(map: "pk_iridio_in") @default(autoincrement())
+  tel_id      Int?
+  mail_id     Int?       @unique(map: "iridio_in_mail_id_uniq")
+  ins_fecha   DateTime?  @db.Timestamp(6)
+  ins_update  DateTime?  @db.Timestamp(6)
+  so_version  String?    @db.VarChar(40)
+  inf_device  String?    @db.VarChar(30)
+  acc_last    DateTime?  @db.Timestamp(6)
+  app_version String?    @db.VarChar(10)
+  emails      emails?    @relation(fields: [mail_id], references: [mail_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_iridio_emails")
+  telefonos   telefonos? @relation(fields: [tel_id], references: [tel_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_iridio_tel")
+
+  @@index([mail_id], map: "idx_iridio_in_mail_id")
+  @@schema("public")
+}
+
+model leadtime {
+  leadtime_id     Int               @id(map: "pk_leadtime") @default(autoincrement()) @db.SmallInt
+  ldt_descri      String?           @db.VarChar(60)
+  ldt_tipo        Int?              @db.SmallInt
+  ldt_inicio      DateTime?         @db.Date
+  ldt_vence       DateTime?         @db.Date
+  ldt_estado      Boolean?
+  leadtime_ubigeo leadtime_ubigeo[]
+
+  @@schema("public")
+}
+
+model leadtime_dias {
+  ldt_ciu_id      Int
+  dia_id          Int             @db.SmallInt
+  ldt_estado      Boolean?
+  leadtime_ubigeo leadtime_ubigeo @relation(fields: [ldt_ciu_id], references: [ldt_ciu_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_leadtime_dias")
+
+  @@id([ldt_ciu_id, dia_id], map: "pk_leadtime_dias")
+  @@schema("public")
+}
+
+model leadtime_service {
+  service_id  Int
+  leadtime_id Int       @db.SmallInt
+  fec_desde   DateTime? @db.Date
+  fec_hasta   DateTime? @db.Date
+
+  @@id([service_id, leadtime_id], map: "pk_leadtime_service")
+  @@schema("public")
+}
+
+model leadtime_ubigeo {
+  ldt_ciu_id                                     Int                      @id(map: "pk_leadtime_ubigeo") @default(autoincrement())
+  leadtime_id                                    Int?                     @db.SmallInt
+  suc_origen                                     Int?                     @db.SmallInt
+  suc_destino                                    Int?                     @db.SmallInt
+  ciu_id                                         Int?                     @db.SmallInt
+  tim_ao_std                                     Unsupported("interval")?
+  tim_ao_prime                                   Unsupported("interval")?
+  tim_ao_air                                     Unsupported("interval")?
+  tim_ad                                         Unsupported("interval")?
+  leadtime_dias                                  leadtime_dias[]
+  leadtime                                       leadtime?                @relation(fields: [leadtime_id], references: [leadtime_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_ldt_ubi")
+  gis_ciudad                                     public_gis_ciudad?       @relation(fields: [ciu_id], references: [ciu_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_ldt_ubi_ciu")
+  sucursal_leadtime_ubigeo_suc_destinoTosucursal sucursal?                @relation("leadtime_ubigeo_suc_destinoTosucursal", fields: [suc_destino], references: [sucursal_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_ldt_ubi_suc_des")
+  sucursal_leadtime_ubigeo_suc_origenTosucursal  sucursal?                @relation("leadtime_ubigeo_suc_origenTosucursal", fields: [suc_origen], references: [sucursal_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_ldt_ubi_suc_org")
+
+  @@schema("public")
+}
+
+model lh_paradas {
+  lh_stop_id  Int                      @id(map: "pk_lh_paradas") @default(autoincrement()) @db.SmallInt
+  lh_id       Int?                     @db.SmallInt
+  sucursal_id Int?                     @db.SmallInt
+  suc_orden   Int?                     @db.SmallInt
+  tstop_id    Int?                     @db.SmallInt
+  tim_viaje   Unsupported("interval")?
+  hor_llegada DateTime?                @db.Time(6)
+  tim_parada  DateTime?                @db.Time(6)
+  suc_estado  Boolean?
+  suc_origen  Int?                     @db.SmallInt
+  line_haul   line_haul?               @relation(fields: [lh_id], references: [lh_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_lh_stop_lh")
+  sucursal    sucursal?                @relation(fields: [sucursal_id], references: [sucursal_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_lh_stop_suc")
+
+  @@index([lh_id], map: "idx_lh_paradas_lh_id")
+  @@index([lh_stop_id], map: "idx_lh_paradas_lh_stop_id")
+  @@schema("public")
+}
+
+model line_haul {
+  lh_id       Int                      @id(map: "pk_line_haul") @default(autoincrement()) @db.SmallInt
+  sucursal_id Int?                     @db.SmallInt
+  lh_codigo   String?                  @db.VarChar(4)
+  lh_nombre   String?                  @db.VarChar(60)
+  tvia_id     Int?                     @db.SmallInt
+  tzon_id     Int?                     @db.SmallInt
+  hor_salida  DateTime?                @db.Time(6)
+  tim_viaje   Unsupported("interval")?
+  lh_estado   Boolean?
+  lh_api_id   Int?
+  lh_paradas  lh_paradas[]
+  sucursal    sucursal?                @relation(fields: [sucursal_id], references: [sucursal_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_lh_suc")
+
+  @@index([lh_id], map: "idx_line_haul_lh_id")
+  @@index([sucursal_id], map: "idx_line_haul_sucursal_id")
+  @@schema("public")
+}
+
+model lote_piezas {
+  lot_pza_id     Int              @id(map: "pk_lote_piezas") @default(autoincrement())
+  lote_id        Int?
+  envio_id       Int?
+  pieza_id       Int?
+  pza_orden      Int?             @db.SmallInt
+  tserv_id       Int?             @db.SmallInt
+  geo_id         Int?
+  dir_id         Int?
+  eve_id         Int?             @db.SmallInt
+  ren_id         Int?
+  pza_barra      String?          @db.VarChar(30)
+  pza_estado     Boolean?
+  direcciones    direcciones?     @relation(fields: [dir_id], references: [dir_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_lot_pz_dir")
+  chk_motivos    chk_motivos?     @relation(fields: [eve_id], references: [eve_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_lot_pza_chk_mot")
+  envio_piezas   envio_piezas?    @relation(fields: [pieza_id], references: [pieza_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_lot_pza_env_pza")
+  lote_ruta      lote_ruta?       @relation(fields: [lote_id], references: [lote_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_lote_pza")
+  envios         envios?          @relation(fields: [envio_id], references: [envio_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_lote_pza_env")
+  route_delivery route_delivery[]
+
+  @@index([lote_id], map: "idx_lote_piezas_lote_id")
+  @@schema("public")
+}
+
+model lote_ruta {
+  lote_id     Int                @id(map: "pk_lote_ruta") @default(autoincrement())
+  sucursal_id Int?               @db.SmallInt
+  ciu_id      Int?               @db.SmallInt
+  gru_id      Int?               @db.SmallInt
+  area_id     Int?               @db.SmallInt
+  zona_id     Int?
+  lote_fecha  DateTime?          @db.Date
+  lote_estado Int?               @db.SmallInt
+  lote_piezas lote_piezas[]
+  areas_ruta  areas_ruta?        @relation(fields: [area_id], references: [area_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_lot_rut_are")
+  sucursal    sucursal?          @relation(fields: [sucursal_id], references: [sucursal_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_lote__suc")
+  gis_ciudad  public_gis_ciudad? @relation(fields: [ciu_id], references: [ciu_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_lote_gis_ciu")
+  grupo       grupo?             @relation(fields: [gru_id], references: [gru_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_lote_gru")
+  zonas       zonas?             @relation(fields: [zona_id], references: [zona_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_lote_zona")
+  lote_status lote_status[]
+
+  @@index([lote_id], map: "idx_lote_ruta_lote_id")
+  @@schema("public")
+}
+
+model lote_status {
+  lot_stat_id Int        @id(map: "pk_lote_status") @default(autoincrement())
+  lote_id     Int?
+  lot_status  Int?       @db.SmallInt
+  usuario_id  Int?
+  stat_fecha  DateTime?  @db.Timestamp(6)
+  lote_ruta   lote_ruta? @relation(fields: [lote_id], references: [lote_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_lot_stat_lote")
+  usuarios    usuarios?  @relation(fields: [usuario_id], references: [usuario_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_lot_stat_usu")
+
+  @@schema("public")
+}
+
+model nb_grupo {
+  nb_grp_id     Int             @id(map: "pk_nb_grupo") @default(autoincrement())
+  sucursal_id   Int?            @db.SmallInt
+  area_id       Int?            @db.SmallInt
+  machine_id    Int?            @db.SmallInt
+  grp_fecha     DateTime?       @db.Timestamp(6)
+  rou_total     Int?            @db.SmallInt
+  pza_total     Int?            @db.SmallInt
+  hor_inicio    DateTime?       @db.Timestamp(6)
+  hor_ultimo    DateTime?       @db.Timestamp(6)
+  pza_sorter    Int?            @db.SmallInt
+  grp_estado    Int?            @db.SmallInt
+  usuario_id    Int?
+  areas_ruta    areas_ruta?     @relation(fields: [area_id], references: [area_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_nb_grp_are")
+  nb_machine    nb_machine?     @relation(fields: [machine_id], references: [machine_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_nb_grp_mach")
+  sucursal      sucursal?       @relation(fields: [sucursal_id], references: [sucursal_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_nb_grp_suc")
+  usuarios      usuarios?       @relation(fields: [usuario_id], references: [usuario_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_nb_grp_usu")
+  nb_piezas_out nb_piezas_out[]
+  nb_routes     nb_routes[]
+
+  @@schema("public")
+}
+
+model nb_machine {
+  machine_id   Int        @id(map: "pk_nb_machine") @default(autoincrement()) @db.SmallInt
+  mach_code    String?    @db.Char(6)
+  mach_name    String?    @db.VarChar(50)
+  fec_registro DateTime?  @db.Timestamp(6)
+  mach_estado  Boolean?
+  nb_grupo     nb_grupo[]
+
+  @@schema("public")
+}
+
+model nb_piezas_out {
+  nb_pza_id    Int           @id(map: "pk_nb_piezas_out") @default(autoincrement())
+  nb_grp_id    Int?
+  envio_id     Int?
+  pieza_id     Int?
+  fec_scan     DateTime?     @db.Timestamp(6)
+  nb_log_id    Int?
+  eve_id       Int?          @db.SmallInt
+  envios       envios?       @relation(fields: [envio_id], references: [envio_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_nb_out_envi")
+  nb_grupo     nb_grupo?     @relation(fields: [nb_grp_id], references: [nb_grp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_nb_out_grp")
+  envio_piezas envio_piezas? @relation(fields: [pieza_id], references: [pieza_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_nb_out_pza")
+
+  @@schema("public")
+}
+
+model nb_routes {
+  nb_rou_id  Int       @id(map: "pk_nb_routes") @default(autoincrement())
+  nb_grp_id  Int?
+  rou_id     Int?
+  chute_id   Int?      @db.SmallInt
+  pza_total  Int?      @db.SmallInt
+  pza_sorter Int?      @db.SmallInt
+  nb_grupo   nb_grupo? @relation(fields: [nb_grp_id], references: [nb_grp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_nb_rou_grp")
+  routes     routes?   @relation(fields: [rou_id], references: [rou_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_nb_rou_rou")
+
+  @@schema("public")
+}
+
+model novedad_imagen {
+  nov_img_id   Int                   @id(map: "pk_novedad_imagen") @default(autoincrement())
+  nov_mov_id   Int?
+  img_path     String?               @db.VarChar(150)
+  img_fecha    DateTime?             @db.Timestamp(6)
+  img_point    Unsupported("point")?
+  novedad_move novedad_move?         @relation(fields: [nov_mov_id], references: [nov_mov_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_nov_img_nov_mov")
+
+  @@index([nov_img_id], map: "idx_novedad_imagen_nov_img_id")
+  @@index([nov_mov_id], map: "idx_novedad_imagen_nov_mov_id")
+  @@schema("public")
+}
+
+model novedad_move {
+  nov_mov_id     Int              @id(map: "pk_novedad_move") @default(autoincrement())
+  nov_pza_id     Int?
+  eve_id         Int?             @db.SmallInt
+  eve_fecha      DateTime?        @db.Timestamp(6)
+  eve_apunts     String?          @db.VarChar(600)
+  usuario_id     Int?
+  fec_update     DateTime?        @db.Timestamp(6)
+  gab_id         Int?
+  novedad_imagen novedad_imagen[]
+  novedad_piezas novedad_piezas?  @relation(fields: [nov_pza_id], references: [nov_pza_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_nov_mov_nov_pzas")
+  usuarios       usuarios?        @relation(fields: [usuario_id], references: [usuario_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_nov_mov_usu")
+
+  @@index([nov_mov_id], map: "idx_novedad_move_nov_mov_id")
+  @@index([nov_pza_id], map: "idx_novedad_move_nov_pza_id")
+  @@schema("public")
+}
+
+model novedad_piezas {
+  nov_pza_id   Int            @id(map: "pk_novedad_piezas") @default(autoincrement())
+  nov_ao_id    Int?
+  pza_barra    String?        @db.VarChar(30)
+  pza_barr_2   String?        @db.VarChar(80)
+  pieza_id     Int?
+  envio_id     Int?
+  nmot_id      Int?           @db.SmallInt
+  pza_cantid   Int?           @db.SmallInt
+  eve_id       Int?           @db.SmallInt
+  gab_id       Int?
+  novedad_move novedad_move[]
+  novedades_ao novedades_ao?  @relation(fields: [nov_ao_id], references: [nov_ao_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_nov_pza_nov_ao")
+  chk_motivos  chk_motivos?   @relation(fields: [eve_id], references: [eve_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_nov_pzas_chk")
+  envios       envios?        @relation(fields: [envio_id], references: [envio_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_nov_pzas_env")
+  envio_piezas envio_piezas?  @relation(fields: [pieza_id], references: [pieza_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_nov_pzas_env_pzas")
+
+  @@index([envio_id], map: "idx_novedad_piezas_envio_id")
+  @@index([nov_ao_id], map: "idx_novedad_piezas_nov_ao_id")
+  @@index([nov_pza_id], map: "idx_novedad_piezas_nov_pza_id")
+  @@index([pieza_id], map: "idx_novedad_piezas_pieza_id")
+  @@schema("public")
+}
+
+model novedades_ao {
+  nov_ao_id      Int              @id(map: "pk_novedades_ao") @default(autoincrement())
+  shi_id         Int?             @db.SmallInt
+  nov_fecha      DateTime?        @db.Date
+  nov_piezas     Int?             @db.SmallInt
+  nov_estado     Int?             @db.SmallInt
+  usuario_id     Int?
+  fec_creado     DateTime?        @db.Timestamp(6)
+  novedad_piezas novedad_piezas[]
+  shipper        shipper?         @relation(fields: [shi_id], references: [shi_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_nov_ao_ship")
+  usuarios       usuarios?        @relation(fields: [usuario_id], references: [usuario_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_nov_ao_usu")
+
+  @@index([nov_ao_id], map: "idx_novedades_ao_nov_ao_id")
+  @@index([nov_fecha], map: "idx_novedades_ao_nov_fecha")
+  @@index([shi_id], map: "idx_novedades_ao_shi_id")
+  @@schema("public")
+}
+
+model osm2pgsql_properties {
+  property String @id
+  value    String
+
+  @@schema("public")
+}
+
+model periodos {
+  periodo_id  Int       @id(map: "pk_periodos") @default(autoincrement()) @db.SmallInt
+  peri_yera   Int?      @db.SmallInt
+  peri_month  Int?      @db.SmallInt
+  peri_sem    Int?      @db.SmallInt
+  peri_desde  DateTime? @db.Date
+  peri_hasta  DateTime? @db.Date
+  peri_estado Boolean?
+
+  @@schema("public")
+}
+
+model personal {
+  per_id          Int               @id(map: "pk_personal") @default(autoincrement())
+  per_tdoc        Int?              @db.SmallInt
+  per_nrodoc      String?           @db.VarChar(12)
+  per_nombre      String?           @db.VarChar(60)
+  per_apellido    String?           @db.VarChar(60)
+  per_estado      Boolean?
+  per_fecnac      DateTime?         @db.Date
+  personal_beto   personal_beto[]
+  personal_docs   personal_docs[]
+  personal_homo   personal_homo[]
+  personal_jornal personal_jornal[]
+  personal_move   personal_move[]
+  personal_status personal_status?
+  req_per_marca   req_per_marca[]
+  req_personal    req_personal[]
+
+  @@unique([per_tdoc, per_nrodoc], map: "unique_tipo_nro_doc")
+  @@schema("public")
+}
+
+model personal_beto {
+  per_beto_id Int       @id(map: "pk_personal_beto") @default(autoincrement())
+  per_id      Int?
+  supp_id     Int?
+  mbeto_id    Int?      @db.SmallInt
+  fec_beto    DateTime? @db.Date
+  obs_beto    String?   @db.VarChar(500)
+  usuario_id  Int?
+  fec_update  DateTime? @db.Timestamp(6)
+  personal    personal? @relation(fields: [per_id], references: [per_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_pbeto_per")
+  supplier    supplier? @relation(fields: [supp_id], references: [supp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_pbeto_supp")
+
+  @@schema("public")
+}
+
+model personal_docs {
+  per_doc_id Int       @id(map: "pk_personal_docs") @default(autoincrement())
+  per_id     Int?
+  tdoc_id    Int?      @db.SmallInt
+  doc_numero String?   @db.VarChar(20)
+  doc_path   String?   @db.VarChar(120)
+  fec_upload DateTime? @db.Timestamp(6)
+  usuario_id Int?
+  doc_estado Boolean?
+  doc_inicio DateTime? @db.Date
+  doc_vence  DateTime? @db.Date
+  supp_id    Int?
+  doc_observ String?   @db.VarChar(512)
+  personal   personal? @relation(fields: [per_id], references: [per_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_per_docs")
+  usuarios   usuarios? @relation(fields: [usuario_id], references: [usuario_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_per_docs_usu")
+
+  @@schema("public")
+}
+
+model personal_homo {
+  homo_per_id Int       @id(map: "pk_personal_homo") @default(autoincrement())
+  per_id      Int?
+  supp_id     Int?
+  homo_estado Int?      @db.SmallInt
+  fec_homo    DateTime? @db.Timestamp(6)
+  usuario_id  Int?
+  personal    personal? @relation(fields: [per_id], references: [per_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_homo_per")
+  supplier    supplier? @relation(fields: [supp_id], references: [supp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_per_homo_supp")
+  usuarios    usuarios? @relation(fields: [usuario_id], references: [usuario_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_per_homo_usu")
+
+  @@schema("public")
+}
+
+model personal_jornal {
+  per_jor_id Int                      @id(map: "pk_personal_jornal") @default(autoincrement())
+  per_id     Int?
+  hora_id    Int?                     @db.SmallInt
+  jor_fecha  DateTime?                @db.Date
+  jor_horini DateTime?                @db.Time(6)
+  jor_cierre DateTime?                @db.Timestamp(6)
+  jor_time   Unsupported("interval")?
+  jor_estado Boolean?
+  horarios   horarios?                @relation(fields: [hora_id], references: [hora_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_per_jor_hor")
+  personal   personal?                @relation(fields: [per_id], references: [per_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_per_jor_per")
+
+  @@index([jor_fecha], map: "idx_personal_jornal_jor_fecha")
+  @@index([per_id], map: "idx_personal_jornal_per_id")
+  @@index([per_jor_id], map: "idx_personal_jornal_per_jor_id")
+  @@schema("public")
+}
+
+model personal_move {
+  per_mov_id  Int         @id(map: "pk_personal_move") @default(autoincrement())
+  per_id      Int?
+  supp_id     Int?        @db.SmallInt
+  sucursal_id Int?        @db.SmallInt
+  cargo_id    Int?        @db.SmallInt
+  area_id     Int?        @db.SmallInt
+  hora_id     Int?        @db.SmallInt
+  fec_move    DateTime?   @db.Timestamp(6)
+  usuario_id  Int?
+  fec_cese    DateTime?   @db.Date
+  fec_upgrade DateTime?   @db.Timestamp(6)
+  areas_ruta  areas_ruta? @relation(fields: [area_id], references: [area_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_per_mov_area")
+  cargos      cargos?     @relation(fields: [cargo_id], references: [cargo_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_per_mov_car")
+  horarios    horarios?   @relation(fields: [hora_id], references: [hora_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_per_mov_hor")
+  usuarios    usuarios?   @relation(fields: [usuario_id], references: [usuario_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_per_mov_usu")
+  personal    personal?   @relation(fields: [per_id], references: [per_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_per_move")
+  supplier    supplier?   @relation(fields: [supp_id], references: [supp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_per_move_sup")
+  sucursal    sucursal?   @relation(fields: [sucursal_id], references: [sucursal_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_perl_mov_suc")
+
+  @@schema("public")
+}
+
+model personal_status {
+  per_id      Int       @id(map: "pk_personal_status")
+  supp_id     Int?
+  sucursal_id Int?
+  hora_id     Int?
+  per_id_api  Int?
+  area_id     Int?      @db.SmallInt
+  cargo_id    Int?      @db.SmallInt
+  per_talla   Int?      @db.SmallInt
+  per_homo    Int?      @db.SmallInt
+  cargos      cargos?   @relation(fields: [cargo_id], references: [cargo_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_per_cargos")
+  horarios    horarios? @relation(fields: [hora_id], references: [hora_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_per_horarios")
+  personal    personal  @relation(fields: [per_id], references: [per_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_per_status")
+  sucursal    sucursal? @relation(fields: [sucursal_id], references: [sucursal_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_per_sucursal")
+  supplier    supplier? @relation(fields: [supp_id], references: [supp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_per_supplier")
+
+  @@schema("public")
+}
+
+model pieza_peso {
+  pieza_id     Int          @id(map: "pk_pieza_peso")
+  pza_peso     Decimal?     @db.Decimal(10, 2)
+  pza_alto     Int?         @db.SmallInt
+  pza_largo    Int?         @db.SmallInt
+  pza_ancho    Int?         @db.SmallInt
+  pza_peso_v   Decimal?     @db.Decimal(10, 2)
+  envio_piezas envio_piezas @relation(fields: [pieza_id], references: [pieza_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_pieza_peso")
+
+  @@schema("public")
+}
+
+model plan_ciudad {
+  plan_ciu_id  Int                @id(map: "pk_plan_ciudad") @default(autoincrement())
+  plan_shi_id  Int?
+  ciu_id       Int?               @db.SmallInt
+  ciu_pje      Decimal?           @db.Decimal(10, 6)
+  plan_shipper plan_shipper?      @relation(fields: [plan_shi_id], references: [plan_shi_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_plan_ciu_shi")
+  gis_ciudad   public_gis_ciudad? @relation(fields: [ciu_id], references: [ciu_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_plan_ciudad")
+  plan_piezas  plan_piezas[]
+
+  @@schema("public")
+}
+
+model plan_piezas {
+  plan_ciu_id Int
+  modelo_id   Int         @db.SmallInt
+  tpza_id     Int         @db.SmallInt
+  plan_guias  Int?
+  plan_piezas Int?
+  plan_pesos  Decimal?    @db.Decimal(12, 2)
+  plan_vol    Decimal?    @db.Decimal(12, 4)
+  plan_ciudad plan_ciudad @relation(fields: [plan_ciu_id], references: [plan_ciu_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_plan_pza_ciu")
+
+  @@id([plan_ciu_id, modelo_id, tpza_id], map: "pk_plan_piezas")
+  @@schema("public")
+}
+
+model plan_recursos {
+  plan_rec_id   Int            @id(map: "pk_req_recursos") @default(autoincrement())
+  plan_id       Int?
+  sucursal_id   Int?
+  rop_fecha     DateTime?      @db.Date
+  rop_unidades  Int?           @db.SmallInt
+  rop_per_chf   Int?           @db.SmallInt
+  rop_per_aux   Int?           @db.SmallInt
+  rop_per_est   Int?           @db.SmallInt
+  fec_solicitud DateTime?      @db.Timestamp(6)
+  usuario_id    Int?
+  area_id       Int?           @db.SmallInt
+  rop_estado    Int?           @db.SmallInt
+  lh_id         Int?
+  tund_id       Int?           @db.SmallInt
+  planning      planning?      @relation(fields: [plan_id], references: [plan_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_req_rop_plan")
+  sucursal      sucursal?      @relation(fields: [sucursal_id], references: [sucursal_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_req_rop_suc")
+  usuarios      usuarios?      @relation(fields: [usuario_id], references: [usuario_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_req_rop_usu")
+  req_adicional req_adicional?
+  req_recursos  req_recursos[]
+
+  @@index([lh_id], map: "idx_plan_recursos_lh_id")
+  @@index([plan_rec_id], map: "idx_plan_recursos_plan_rec_id")
+  @@index([rop_fecha], map: "idx_plan_recursos_rop_fecha")
+  @@schema("public")
+}
+
+model plan_shipper {
+  plan_shi_id     Int               @id(map: "pk_plan_service") @default(autoincrement())
+  plan_id         Int?
+  service_id      Int?
+  shi_id          Int?
+  serv_pje        Decimal?          @db.Decimal(10, 4)
+  prog_guias      Int?
+  prog_peso       Decimal?          @db.Decimal(12, 2)
+  user_id         Int?
+  fec_update      DateTime?         @db.Timestamp(6)
+  shi_estado      Boolean?
+  plan_ciudad     plan_ciudad[]
+  planning        planning?         @relation(fields: [plan_id], references: [plan_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_plan_shi_plan")
+  shipper         shipper?          @relation(fields: [shi_id], references: [shi_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_plan_shipper")
+  plan_statistics plan_statistics[]
+
+  @@schema("public")
+}
+
+model plan_statistics {
+  plan_shi_id  Int
+  tpza_id      Int          @db.SmallInt
+  stat_guias   Int?
+  stat_piezas  Int?
+  stat_pesos   Decimal?     @db.Decimal(12, 2)
+  stat_vol     Decimal?     @db.Decimal(12, 4)
+  stat_pje     Decimal?     @db.Decimal(10, 4)
+  ao_guias     Int?
+  ao_piezas    Int?
+  ao_pesos     Decimal?     @db.Decimal(12, 2)
+  ao_vol       Decimal?     @db.Decimal(12, 4)
+  plan_shipper plan_shipper @relation(fields: [plan_shi_id], references: [plan_shi_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_plan_stat_shi")
+
+  @@id([plan_shi_id, tpza_id], map: "pk_plan_stadistic")
+  @@schema("public")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model planet_osm_line {
+  osm_id             BigInt?
+  access             String?
+  addr_housename     String?                  @map("addr:housename")
+  addr_housenumber   String?                  @map("addr:housenumber")
+  addr_interpolation String?                  @map("addr:interpolation")
+  admin_level        String?
+  aerialway          String?
+  aeroway            String?
+  amenity            String?
+  area               String?
+  barrier            String?
+  bicycle            String?
+  brand              String?
+  bridge             String?
+  boundary           String?
+  building           String?
+  construction       String?
+  covered            String?
+  culvert            String?
+  cutting            String?
+  denomination       String?
+  disused            String?
+  embankment         String?
+  foot               String?
+  generator_source   String?                  @map("generator:source")
+  harbour            String?
+  highway            String?
+  historic           String?
+  horse              String?
+  intermittent       String?
+  junction           String?
+  landuse            String?
+  layer              String?
+  leisure            String?
+  lock               String?
+  man_made           String?
+  military           String?
+  motorcar           String?
+  name               String?
+  natural            String?
+  office             String?
+  oneway             String?
+  operator           String?
+  place              String?
+  population         String?
+  power              String?
+  power_source       String?
+  public_transport   String?
+  railway            String?
+  ref                String?
+  religion           String?
+  route              String?
+  service            String?
+  shop               String?
+  sport              String?
+  surface            String?
+  toll               String?
+  tourism            String?
+  tower_type         String?                  @map("tower:type")
+  tracktype          String?
+  tunnel             String?
+  water              String?
+  waterway           String?
+  wetland            String?
+  width              String?
+  wood               String?
+  z_order            Int?
+  way_area           Float?                   @db.Real
+  tags               Unsupported("hstore")?
+  way                Unsupported("geometry")?
+
+  @@index([way], map: "idx_line_way", type: Gist)
+  @@index([way], map: "idx_planet_osm_line_way_gist", type: Gist)
+  @@index([osm_id])
+  @@index([way], type: Gist)
+  @@ignore
+  @@schema("public")
+}
+
+model planet_osm_nodes {
+  id   BigInt @id
+  lat  Int
+  lon  Int
+  tags Json?
+
+  @@schema("public")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model planet_osm_point {
+  osm_id             BigInt?
+  access             String?
+  addr_housename     String?                  @map("addr:housename")
+  addr_housenumber   String?                  @map("addr:housenumber")
+  addr_interpolation String?                  @map("addr:interpolation")
+  admin_level        String?
+  aerialway          String?
+  aeroway            String?
+  amenity            String?
+  area               String?
+  barrier            String?
+  bicycle            String?
+  brand              String?
+  bridge             String?
+  boundary           String?
+  building           String?
+  capital            String?
+  construction       String?
+  covered            String?
+  culvert            String?
+  cutting            String?
+  denomination       String?
+  disused            String?
+  ele                String?
+  embankment         String?
+  foot               String?
+  generator_source   String?                  @map("generator:source")
+  harbour            String?
+  highway            String?
+  historic           String?
+  horse              String?
+  intermittent       String?
+  junction           String?
+  landuse            String?
+  layer              String?
+  leisure            String?
+  lock               String?
+  man_made           String?
+  military           String?
+  motorcar           String?
+  name               String?
+  natural            String?
+  office             String?
+  oneway             String?
+  operator           String?
+  place              String?
+  population         String?
+  power              String?
+  power_source       String?
+  public_transport   String?
+  railway            String?
+  ref                String?
+  religion           String?
+  route              String?
+  service            String?
+  shop               String?
+  sport              String?
+  surface            String?
+  toll               String?
+  tourism            String?
+  tower_type         String?                  @map("tower:type")
+  tunnel             String?
+  water              String?
+  waterway           String?
+  wetland            String?
+  width              String?
+  wood               String?
+  z_order            Int?
+  tags               Unsupported("hstore")?
+  way                Unsupported("geometry")?
+
+  @@index([way], map: "idx_planet_osm_point_way_gist", type: Gist)
+  @@index([way], map: "idx_point_way", type: Gist)
+  @@index([osm_id])
+  @@index([way], type: Gist)
+  @@ignore
+  @@schema("public")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model planet_osm_polygon {
+  osm_id             BigInt?
+  access             String?
+  addr_housename     String?                  @map("addr:housename")
+  addr_housenumber   String?                  @map("addr:housenumber")
+  addr_interpolation String?                  @map("addr:interpolation")
+  admin_level        String?
+  aerialway          String?
+  aeroway            String?
+  amenity            String?
+  area               String?
+  barrier            String?
+  bicycle            String?
+  brand              String?
+  bridge             String?
+  boundary           String?
+  building           String?
+  construction       String?
+  covered            String?
+  culvert            String?
+  cutting            String?
+  denomination       String?
+  disused            String?
+  embankment         String?
+  foot               String?
+  generator_source   String?                  @map("generator:source")
+  harbour            String?
+  highway            String?
+  historic           String?
+  horse              String?
+  intermittent       String?
+  junction           String?
+  landuse            String?
+  layer              String?
+  leisure            String?
+  lock               String?
+  man_made           String?
+  military           String?
+  motorcar           String?
+  name               String?
+  natural            String?
+  office             String?
+  oneway             String?
+  operator           String?
+  place              String?
+  population         String?
+  power              String?
+  power_source       String?
+  public_transport   String?
+  railway            String?
+  ref                String?
+  religion           String?
+  route              String?
+  service            String?
+  shop               String?
+  sport              String?
+  surface            String?
+  toll               String?
+  tourism            String?
+  tower_type         String?                  @map("tower:type")
+  tracktype          String?
+  tunnel             String?
+  water              String?
+  waterway           String?
+  wetland            String?
+  width              String?
+  wood               String?
+  z_order            Int?
+  way_area           Float?                   @db.Real
+  tags               Unsupported("hstore")?
+  way                Unsupported("geometry")?
+
+  @@index([way], map: "idx_planet_osm_polygon_way_gist", type: Gist)
+  @@index([tags], map: "idx_polygon_tags", type: Gin)
+  @@index([way], map: "idx_polygon_way", type: Gist)
+  @@index([osm_id])
+  @@index([way], type: Gist)
+  @@ignore
+  @@schema("public")
+}
+
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model planet_osm_rels {
+  id      BigInt @id
+  members Json
+  tags    Json?
+
+  @@schema("public")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model planet_osm_roads {
+  osm_id             BigInt?
+  access             String?
+  addr_housename     String?                  @map("addr:housename")
+  addr_housenumber   String?                  @map("addr:housenumber")
+  addr_interpolation String?                  @map("addr:interpolation")
+  admin_level        String?
+  aerialway          String?
+  aeroway            String?
+  amenity            String?
+  area               String?
+  barrier            String?
+  bicycle            String?
+  brand              String?
+  bridge             String?
+  boundary           String?
+  building           String?
+  construction       String?
+  covered            String?
+  culvert            String?
+  cutting            String?
+  denomination       String?
+  disused            String?
+  embankment         String?
+  foot               String?
+  generator_source   String?                  @map("generator:source")
+  harbour            String?
+  highway            String?
+  historic           String?
+  horse              String?
+  intermittent       String?
+  junction           String?
+  landuse            String?
+  layer              String?
+  leisure            String?
+  lock               String?
+  man_made           String?
+  military           String?
+  motorcar           String?
+  name               String?
+  natural            String?
+  office             String?
+  oneway             String?
+  operator           String?
+  place              String?
+  population         String?
+  power              String?
+  power_source       String?
+  public_transport   String?
+  railway            String?
+  ref                String?
+  religion           String?
+  route              String?
+  service            String?
+  shop               String?
+  sport              String?
+  surface            String?
+  toll               String?
+  tourism            String?
+  tower_type         String?                  @map("tower:type")
+  tracktype          String?
+  tunnel             String?
+  water              String?
+  waterway           String?
+  wetland            String?
+  width              String?
+  wood               String?
+  z_order            Int?
+  way_area           Float?                   @db.Real
+  tags               Unsupported("hstore")?
+  way                Unsupported("geometry")?
+
+  @@index([osm_id])
+  @@index([way], type: Gist)
+  @@ignore
+  @@schema("public")
+}
+
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
+model planet_osm_ways {
+  id    BigInt   @id
+  nodes BigInt[]
+  tags  Json?
+
+  @@schema("public")
+}
+
+model planning {
+  plan_id       Int             @id(map: "pk_planning") @default(autoincrement())
+  sucursal_id   Int?            @db.SmallInt
+  plan_fecha    DateTime?       @db.Date
+  plan_hora     DateTime?       @db.Timestamp(6)
+  plan_tipo     Int?            @db.SmallInt
+  plan_estado   Boolean?
+  plan_recursos plan_recursos[]
+  plan_shipper  plan_shipper[]
+  sucursal      sucursal?       @relation(fields: [sucursal_id], references: [sucursal_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_planning_sucursal")
+
+  @@unique([sucursal_id, plan_fecha], map: "uq_sucursal_fecha")
+  @@index([sucursal_id, plan_fecha], map: "idx_planning_sucursal_fecha")
+  @@schema("public")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model pyp_data {
+  gui_numero    Int?
+  shi_codigo    Int?      @db.SmallInt
+  id_orden      Int?      @db.SmallInt
+  ao_year       Int?      @db.SmallInt
+  ao_month      Int?      @db.SmallInt
+  ao_dia        Int?      @db.SmallInt
+  ao_dia_semana Int?      @db.SmallInt
+  ao_fecha      DateTime? @db.Date
+  prov_org      Int?      @db.SmallInt
+  ciu_ubigeo    String?   @db.VarChar
+  eve_id        Int?      @db.SmallInt
+  temp_id       Int?      @db.SmallInt
+  piezas        Int?
+  volumen       Int?
+  peso          Decimal?  @db.Decimal(12, 2)
+  peso_vol      Decimal?  @db.Decimal(12, 2)
+  estado        Int?      @db.SmallInt
+
+  @@index([estado], map: "idx_estado")
+  @@index([gui_numero], map: "idx_guia")
+  @@ignore
+  @@schema("public")
+}
+
+model req_adicional {
+  plan_rec_id   Int           @id(map: "pk_req_recurso_adicional")
+  rrop_unidad   Int?          @db.SmallInt
+  rrop_per_chf  Int?          @db.SmallInt
+  rrop_per_aux  Int?          @db.SmallInt
+  rrop_per_est  Int?          @db.SmallInt
+  fec_solicitud DateTime?     @db.Timestamp(6)
+  usuario_id    Int?
+  fec_update    DateTime?     @db.Timestamp(6)
+  plan_recursos plan_recursos @relation(fields: [plan_rec_id], references: [plan_rec_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_req_rec_adi")
+
+  @@schema("public")
+}
+
+model req_horarios {
+  req_hor_id   Int            @id(map: "pk_req_horarios") @default(autoincrement()) @db.SmallInt
+  hor_inicio   DateTime?      @db.Time(6)
+  hor_cierre   DateTime?      @db.Time(6)
+  usuario_id   Int?
+  fec_update   DateTime?      @db.Timestamp(6)
+  hor_estado   Boolean?
+  usuarios     usuarios?      @relation(fields: [usuario_id], references: [usuario_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_req_hor_usu")
+  req_recursos req_recursos[]
+
+  @@schema("public")
+}
+
+model req_per_marca {
+  per_marc_id  Int           @id(map: "pk_req_per_asiste") @default(autoincrement())
+  per_id       Int?
+  rrop_per_id  Int?
+  fec_marca    DateTime?     @db.Timestamp(6)
+  marc_tipo    String?       @db.Char(2)
+  usuario_id   Int?
+  mac_id       String?       @db.VarChar(32)
+  req_personal req_personal? @relation(fields: [rrop_per_id], references: [rrop_per_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_req_mar_per")
+  personal     personal?     @relation(fields: [per_id], references: [per_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_req_per_marc")
+
+  @@index([per_marc_id], map: "idx_req_per_marca_per_marc_id")
+  @@index([rrop_per_id], map: "idx_req_per_marca_rrop_per_id")
+  @@schema("public")
+}
+
+model req_personal {
+  rrop_per_id   Int             @id(map: "pk_req_personal_0") @default(autoincrement())
+  rrop_id       Int
+  per_id        Int
+  cargo_id      Int?            @db.SmallInt
+  prg_fec_hor   DateTime?       @db.Timestamp(6)
+  usuario_id    Int?
+  per_asiste    Boolean?
+  per_is_aux    Boolean?
+  req_per_marca req_per_marca[]
+  usuarios      usuarios?       @relation(fields: [usuario_id], references: [usuario_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_req_per_usu")
+  req_recursos  req_recursos    @relation(fields: [rrop_id], references: [rrop_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_req_perl_req_rec")
+  personal      personal        @relation(fields: [per_id], references: [per_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_req_personal")
+
+  @@unique([rrop_id, per_id, cargo_id], map: "pk_req_personal")
+  @@index([rrop_id], map: "idx_req_personal_rrop_id")
+  @@index([rrop_per_id], map: "idx_req_personal_rrop_per_id")
+  @@schema("public")
+}
+
+model req_recursos {
+  rrop_id       Int            @id(map: "pk_req_recursos_0") @default(autoincrement())
+  plan_rec_id   Int?
+  supp_id       Int?
+  req_hor_id    Int?           @db.SmallInt
+  rrop_unidad   Int?           @db.SmallInt
+  rrop_per_chf  Int?           @db.SmallInt
+  rrop_per_aux  Int?           @db.SmallInt
+  rrop_per_est  Int?           @db.SmallInt
+  rrop_otros    Int?           @db.SmallInt
+  asig_unidad   Int?           @db.SmallInt
+  asig_per_chf  Int?           @db.SmallInt
+  asig_per_aux  Int?           @db.SmallInt
+  asig_per_est  Int?           @db.SmallInt
+  asig_otros    Int?           @db.SmallInt
+  rrop_estado   Int?           @db.SmallInt
+  req_personal  req_personal[]
+  plan_recursos plan_recursos? @relation(fields: [plan_rec_id], references: [plan_rec_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_req_rec_plan")
+  req_horarios  req_horarios?  @relation(fields: [req_hor_id], references: [req_hor_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_req_rec_req_hor")
+  supplier      supplier?      @relation(fields: [supp_id], references: [supp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_req_rec_sup")
+  req_unidades  req_unidades[]
+
+  @@index([plan_rec_id], map: "idx_req_recursos_plan_rec_id")
+  @@index([rrop_id], map: "idx_req_recursos_plan_rrop_id")
+  @@index([supp_id], map: "idx_req_recursos_plan_supp_id")
+  @@schema("public")
+}
+
+model req_und_marca {
+  und_marc_id      Int                @id(map: "pk_req_und_marca") @default(autoincrement())
+  unidad_id        Int?
+  rrop_und_id      Int?
+  fec_marca        DateTime?          @db.Timestamp(6)
+  marc_tipo        String?            @db.Char(2)
+  usuario_id       Int?
+  mac_id           String?            @db.VarChar(30)
+  per_id_chf       Int?
+  marc_muelle      Int?
+  marc_observa     String?            @db.VarChar(300)
+  marc_odo         Int?
+  rou_id           Int?
+  req_unidades     req_unidades?      @relation(fields: [rrop_und_id], references: [rrop_und_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_req_marc_req_und")
+  unidades         unidades?          @relation(fields: [unidad_id], references: [unidad_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_req_marc_und")
+  usuarios         usuarios?          @relation(fields: [usuario_id], references: [usuario_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_req_und_mar_usu")
+  und_marca_imagen und_marca_imagen[]
+
+  @@index([rrop_und_id], map: "idx_req_und_marca_rrop_und_id")
+  @@index([und_marc_id], map: "idx_req_und_marca_und_marc_id")
+  @@schema("public")
+}
+
+model req_unidades {
+  rrop_und_id   Int             @id(map: "pk_req_unidades_0") @default(autoincrement())
+  rrop_id       Int
+  unidad_id     Int
+  prg_fec_hor   DateTime?       @db.Timestamp(6)
+  usuario_id    Int?
+  und_asiste    Boolean?
+  req_und_marca req_und_marca[]
+  req_recursos  req_recursos    @relation(fields: [rrop_id], references: [rrop_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_req_und_req_rec")
+  usuarios      usuarios?       @relation(fields: [usuario_id], references: [usuario_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_req_und_usu")
+  unidades      unidades        @relation(fields: [unidad_id], references: [unidad_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_req_unidad")
+
+  @@unique([rrop_id, unidad_id], map: "pk_req_unidades")
+  @@index([rrop_id], map: "idx_req_unidades_rrop_id")
+  @@index([rrop_und_id], map: "idx_req_unidades_rrop_und_id")
+  @@schema("public")
+}
+
+model route_delivery {
+  rou_env_id   Int           @id(map: "pk_pre_route_dl") @default(autoincrement())
+  rou_id       Int?
+  rou_poi_id   Int?
+  tserv_id     Int?          @db.SmallInt
+  envio_id     Int?
+  pieza_id     Int?
+  ren_id       Int?
+  eve_id       Int?          @db.SmallInt
+  lot_pza_id   Int?
+  del_estado   Int?          @db.SmallInt
+  envios       envios?       @relation(fields: [envio_id], references: [envio_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_rou_dl_env")
+  envio_piezas envio_piezas? @relation(fields: [pieza_id], references: [pieza_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_rou_dl_env_pza")
+  chk_motivos  chk_motivos?  @relation(fields: [eve_id], references: [eve_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_rou_dl_eve")
+  lote_piezas  lote_piezas?  @relation(fields: [lot_pza_id], references: [lot_pza_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_rou_dl_lot_pza")
+  route_point  route_point?  @relation(fields: [rou_poi_id], references: [rou_poi_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_rou_dl_point")
+  routes       routes?       @relation(fields: [rou_id], references: [rou_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_rou_dl_rou")
+
+  @@schema("public")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model route_owner {
+  rou_id        Int    @id(map: "pk_route_owner")
+  per_id        Int?
+  und_id        Int?
+  per_id_man    Int?
+  cel_id        Int?
+  rou_api       Int?
+  rou_guias     Int?   @db.SmallInt
+  rou_piezas    Int?   @db.SmallInt
+  rou_li        Int?   @db.SmallInt
+  rou_pza_count Int?   @db.SmallInt
+  routes        routes @relation(fields: [rou_id], references: [rou_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_route_owner")
+
+  @@schema("public")
+}
+
+model route_planer {
+  rou_id         Int                      @id(map: "pk_route_times")
+  rou_tp_ida     Unsupported("interval")?
+  rou_tp_ruta    Unsupported("interval")?
+  rou_tp_retorno Unsupported("interval")?
+  rou_km_ida     Decimal?                 @db.Decimal(10, 2)
+  rou_km_ruta    Decimal?                 @db.Decimal(10, 2)
+  rou_km_retorno Decimal?                 @db.Decimal(10, 2)
+  rou_waypoint   Int?                     @db.SmallInt
+  routes         routes                   @relation(fields: [rou_id], references: [rou_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_route_planer")
+
+  @@schema("public")
+}
+
+model route_point {
+  rou_poi_id     Int              @id(map: "pk_pre_route_point") @default(autoincrement())
+  rou_id         Int?
+  geo_id         Int?
+  point_order    Int?             @db.SmallInt
+  hor_min        DateTime?        @db.Timetz(6)
+  hor_max        DateTime?        @db.Timetz(6)
+  tot_dl         Int?             @db.SmallInt
+  point_estado   Int?             @db.SmallInt
+  route_delivery route_delivery[]
+  routes         routes?          @relation(fields: [rou_id], references: [rou_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_point_routes")
+  route_waypoint route_waypoint[]
+
+  @@index([rou_id, geo_id], map: "idx_route_point_rou_geo")
+  @@schema("public")
+}
+
+model route_status {
+  rou_stat_id Int       @id(map: "pk_route_status") @default(autoincrement())
+  rou_id      Int
+  rou_status  Int?      @db.SmallInt
+  usuario_id  Int?
+  stat_fecha  DateTime? @db.Timestamp(6)
+  routes      routes    @relation(fields: [rou_id], references: [rou_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_rou_stat_rou")
+  usuarios    usuarios? @relation(fields: [usuario_id], references: [usuario_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_rou_stat_usu")
+
+  @@schema("public")
+}
+
+model route_waypoint {
+  rou_way_id  Int                   @id(map: "pk_route_waypoint") @default(autoincrement())
+  rou_id      Int?
+  rou_poi_id  Int?
+  way_point   Unsupported("point")?
+  way_sequenc Int?
+  route_point route_point?          @relation(fields: [rou_poi_id], references: [rou_poi_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_rou_waypoint_rou_point")
+  routes      routes?               @relation(fields: [rou_id], references: [rou_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_route_waypoint")
+
+  @@schema("public")
+}
+
+model routes {
+  rou_id         Int                @id(map: "pk_pre_route") @default(autoincrement())
+  sucursal_id    Int?               @db.SmallInt
+  ciu_id         Int?               @db.SmallInt
+  gru_id         Int?               @db.SmallInt
+  zona_id        Int?               @db.SmallInt
+  area_id        Int?               @db.SmallInt
+  rou_fecha      DateTime?          @db.Date
+  rou_status     Int?               @db.SmallInt
+  nb_routes      nb_routes[]
+  route_delivery route_delivery[]
+  route_owner    route_owner?
+  route_planer   route_planer?
+  route_point    route_point[]
+  route_status   route_status[]
+  route_waypoint route_waypoint[]
+  areas_ruta     areas_ruta?        @relation(fields: [area_id], references: [area_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_prou_area")
+  gis_ciudad     public_gis_ciudad? @relation(fields: [ciu_id], references: [ciu_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_prou_gis_ciu")
+  grupo          grupo?             @relation(fields: [gru_id], references: [gru_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_prou_gru")
+  sucursal       sucursal?          @relation(fields: [sucursal_id], references: [sucursal_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_prou_suc")
+  zonas          zonas?             @relation(fields: [zona_id], references: [zona_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_prou_zona")
+
+  @@schema("public")
+}
+
+model service_indice {
+  service_id  Int
+  tpza_id     Int      @db.SmallInt
+  guia_piezas Decimal? @db.Decimal(10, 2)
+  guia_peso   Decimal? @db.Decimal(12, 2)
+  guia_vol    Decimal? @db.Decimal(12, 4)
+  stat_tipo   String?  @db.Char(1)
+
+  @@id([service_id, tpza_id])
+  @@index([service_id], map: "idx_service_indice_service_id")
+  @@schema("public")
+}
+
+model servicios {
+  service_id      Int               @id(map: "pk_servicios") @default(autoincrement())
+  shi_id          Int?              @db.SmallInt
+  service_descri  String?           @db.VarChar(80)
+  tser_id         Int?              @db.SmallInt
+  service_estado  Boolean?
+  service_api_id  Int?
+  admision_diaria admision_diaria[]
+  envios          envios[]
+  shipper         shipper?          @relation(fields: [shi_id], references: [shi_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_ser_shi")
+
+  @@index([service_api_id], map: "idx_servicios_service_api_id")
+  @@index([shi_id], map: "idx_servicios_shi_id")
+  @@schema("public")
+}
+
+model shipper {
+  shi_id             Int                  @id(map: "pk_shipper") @default(autoincrement()) @db.SmallInt
+  shi_codigo         String?              @db.VarChar(12)
+  shi_nombre         String?              @db.VarChar(80)
+  shi_estado         Boolean?
+  shi_api_id         Int?                 @db.SmallInt
+  admision_diaria    admision_diaria[]
+  cliente_diccionary cliente_diccionary[]
+  cliente_envios     cliente_envios[]
+  clientes           clientes[]
+  novedades_ao       novedades_ao[]
+  plan_shipper       plan_shipper[]
+  servicios          servicios[]
+
+  @@index([shi_api_id], map: "idx_shipper_shi_api_id")
+  @@index([shi_id], map: "idx_shipper_shi_id")
+  @@schema("public")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model similitud {
+  similarity Float? @db.Real
+
+  @@ignore
+  @@schema("public")
+}
+
+model sis_tablas {
+  tabla_id        Int               @id(map: "pk_tablas_sistema") @db.SmallInt
+  tbl_sigla       String?           @db.Char(4)
+  tbl_nombre      String?           @db.VarChar(60)
+  tbl_descri      String?           @db.VarChar(120)
+  tbl_estado      Boolean?
+  sis_tbl_detalle sis_tbl_detalle[]
+
+  @@schema("public")
+}
+
+model sis_tbl_detalle {
+  tabla_id   Int        @db.SmallInt
+  tbl_codigo Int        @db.SmallInt
+  tbl_det_id Int?       @db.SmallInt
+  tbl_sigla  String?    @db.VarChar(10)
+  tbl_descri String?    @db.VarChar(60)
+  tbl_estado Boolean?
+  sis_tablas sis_tablas @relation(fields: [tabla_id], references: [tabla_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_sis_tbl_det")
+
+  @@id([tabla_id, tbl_codigo], map: "pk_sis_tbl_detalle")
+  @@schema("public")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model spatial_ref_sys {
+  srid      Int     @id
+  auth_name String? @db.VarChar(256)
+  auth_srid Int?
+  srtext    String? @db.VarChar(2048)
+  proj4text String? @db.VarChar(2048)
+
+  @@schema("public")
+}
+
+model suc_cobertura {
+  suc_ciu_id  Int                @id(map: "pk_suc_cobertura") @default(autoincrement()) @db.SmallInt
+  sucursal_id Int?               @db.SmallInt
+  ciu_id      Int?               @db.SmallInt
+  ciu_tipo    Int?               @db.SmallInt
+  fec_active  DateTime?          @db.Date
+  cob_pje     Decimal?           @db.Decimal(10, 2)
+  time_dl     Int?               @db.SmallInt
+  tim_re_dd   Boolean?
+  tim_dd      Int?               @db.SmallInt
+  dias_en     String?            @db.Char(7)
+  ciu_estado  Boolean?
+  usuario_id  Int?
+  gis_ciudad  public_gis_ciudad? @relation(fields: [ciu_id], references: [ciu_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_suc_cob_ciu")
+  sucursal    sucursal?          @relation(fields: [sucursal_id], references: [sucursal_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_suc_cob_suc")
+  usuarios    usuarios?          @relation(fields: [usuario_id], references: [usuario_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_suc_cob_usu")
+
+  @@unique([sucursal_id, ciu_id], map: "unq_suc_cobertura")
+  @@schema("public")
+}
+
+model sucursal {
+  sucursal_id                                           Int               @id(map: "pk_agencias") @default(autoincrement()) @db.SmallInt
+  suc_codigo                                            String?           @db.Char(4)
+  suc_nombre                                            String?           @db.VarChar(60)
+  tsuc_id                                               Int?              @db.SmallInt
+  suc_comercio                                          String?           @db.VarChar(60)
+  geo_id                                                Int?
+  dir_interior                                          String?           @db.VarChar(30)
+  suc_main                                              Int?              @db.SmallInt
+  suc_estado                                            Boolean?
+  admision_diaria                                       admision_diaria[]
+  envio_estado                                          envio_estado[]
+  envio_piezas                                          envio_piezas[]
+  grupo                                                 grupo[]
+  leadtime_ubigeo_leadtime_ubigeo_suc_destinoTosucursal leadtime_ubigeo[] @relation("leadtime_ubigeo_suc_destinoTosucursal")
+  leadtime_ubigeo_leadtime_ubigeo_suc_origenTosucursal  leadtime_ubigeo[] @relation("leadtime_ubigeo_suc_origenTosucursal")
+  lh_paradas                                            lh_paradas[]
+  line_haul                                             line_haul[]
+  lote_ruta                                             lote_ruta[]
+  nb_grupo                                              nb_grupo[]
+  personal_move                                         personal_move[]
+  personal_status                                       personal_status[]
+  plan_recursos                                         plan_recursos[]
+  planning                                              planning[]
+  routes                                                routes[]
+  suc_cobertura                                         suc_cobertura[]
+  unidad_sucursal                                       unidad_sucursal[]
+
+  @@index([sucursal_id], map: "idx_sucursal_sucursal_id")
+  @@schema("public")
+}
+
+model supp_document {
+  doc_id       Int       @id(map: "pk_supplie_document") @default(autoincrement())
+  supp_id      Int?
+  doc_numero   String?   @db.VarChar(20)
+  fec_inicio   DateTime? @db.Date
+  fec_vigencia DateTime? @db.Date
+  doc_path     String?   @db.VarChar(120)
+  doc_estado   Boolean?
+  usuario_id   Int?
+  fec_registro DateTime? @db.Timestamp(6)
+  supplier     supplier? @relation(fields: [supp_id], references: [supp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_supp_doc")
+
+  @@schema("public")
+}
+
+model supplier {
+  supp_id         Int               @id(map: "pk_supplier") @default(autoincrement())
+  sup_ruc         String?           @db.Char(11)
+  sup_nombre      String?           @db.VarChar(100)
+  sup_comercio    String?           @db.VarChar(50)
+  sup_logo        String?           @db.VarChar(100)
+  sup_estado      Boolean?
+  sup_id_api      Int?
+  personal_beto   personal_beto[]
+  personal_homo   personal_homo[]
+  personal_move   personal_move[]
+  personal_status personal_status[]
+  req_recursos    req_recursos[]
+  supp_document   supp_document[]
+  unidad_betos    unidad_betos[]
+  unidad_homo     unidad_homo[]
+  unidades        unidades[]
+
+  @@schema("public")
+}
+
+model tcliente {
+  cli_tel_id Int       @id(map: "pk_tcliente") @default(autoincrement())
+  cli_id     Int
+  tel_id     Int
+  fec_creado DateTime? @db.Date
+  fec_update DateTime? @db.Date
+  clientes   clientes  @relation(fields: [cli_id], references: [cli_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_tcli_cli")
+
+  @@unique([cli_id, tel_id], map: "idx_unique_cli_id_tel_id")
+  @@index([tel_id], map: "idx_tcliente_tel_id")
+  @@schema("public")
+}
+
+model telefonos {
+  tel_id                                            Int              @id(map: "pk_telefonos") @default(autoincrement())
+  tel_pais                                          String?          @db.VarChar(5)
+  tel_numero                                        String?          @unique(map: "unique_tel_numero") @db.VarChar(16)
+  tel_estado                                        Int?             @db.SmallInt
+  envio_contacto_envio_contacto_tel_idTotelefonos   envio_contacto[] @relation("envio_contacto_tel_idTotelefonos")
+  envio_contacto_envio_contacto_tel_id_2Totelefonos envio_contacto[] @relation("envio_contacto_tel_id_2Totelefonos")
+  iridio_in                                         iridio_in[]
+
+  @@index([tel_numero], map: "idx_telefonos_tel_numero")
+  @@schema("public")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model tmp_dir_api {
+  dir_api Int?
+
+  @@ignore
+  @@schema("public")
+}
+
+model tmp_distrito_direcciones {
+  tdd_id      Int         @id @default(autoincrement())
+  dir_id      Int         @unique(map: "uq_tmp_distrito_direcciones_dir")
+  nombre_dir  String      @db.VarChar(255)
+  ciu_id      Int?
+  direcciones direcciones @relation(fields: [dir_id], references: [dir_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_tmp_distrito_direcciones_dir")
+
+  @@schema("public")
+}
+
+model tmp_georef_direcciones {
+  dir_id         Int                   @id
+  address_tms    String?               @db.VarChar(400)
+  ubigeo_tms     String?               @db.VarChar(6)
+  gps_georef     Unsupported("point")?
+  address_georef String?               @db.VarChar(350)
+  geo_id_georef  Int?
+  ubigeo_georef  String?               @db.VarChar(6)
+  created_at     DateTime?             @db.Timestamp(6)
+  zona_id        Int?
+
+  @@schema("public")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model tmp_gru_ciudad {
+  gru_id     Int?
+  ciu_ubigeo String? @db.VarChar(12)
+
+  @@ignore
+  @@schema("public")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model tmp_nodo_ciudad {
+  ciu_ubigeo String? @db.VarChar(40)
+  nod_secuen Int?
+  nod_px     Float?  @db.Real
+  nod_py     Float?  @db.Real
+
+  @@ignore
+  @@schema("public")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model tmp_post_id {
+  post_id       Int?
+  fecha         String? @db.VarChar(20)
+  columna_extra String?
+
+  @@index([post_id], map: "idx_tmp_post_id_post_id")
+  @@ignore
+  @@schema("public")
+}
+
+model public_tmp_puerta_calle_osm {
+  id                  Int                      @id @default(autoincrement())
+  geo_id              Int?                     @unique
+  osm_id              BigInt?
+  calle_nombre        String?
+  distancia_mts       Decimal?                 @db.Decimal(10, 2)
+  geom_conector       Unsupported("geometry")?
+  fecha_actualizacion DateTime?                @default(now()) @db.Timestamp(6)
+  ubigeo              String?                  @db.VarChar(6)
+
+  @@index([geo_id], map: "idx_tmp_puerta_osm_geo_id")
+  @@map("tmp_puerta_calle_osm")
+  @@schema("public")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model tmp_puertas {
+  id_puer     Int?
+  tip_call    String?               @db.VarChar(40)
+  calle2      String?               @db.VarChar(200)
+  n_pta       String?               @db.VarChar(16)
+  tip_urb     String?               @db.VarChar(60)
+  nom_urb     String?               @db.VarChar(200)
+  mz          String?               @db.VarChar(10)
+  num_lote    String?               @db.VarChar(12)
+  dir_x       Float?                @db.Real
+  dir_y       Float?                @db.Real
+  dir_point   Unsupported("point")?
+  concatenado String?
+
+  @@ignore
+  @@schema("public")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model public_tmp_puertas_arequipa {
+  id_puer     Int?
+  tip_call    String?               @db.VarChar(40)
+  calle2      String?               @db.VarChar(200)
+  n_pta       String?               @db.VarChar(16)
+  tip_urb     String?               @db.VarChar(60)
+  nom_urb     String?               @db.VarChar(200)
+  mz          String?               @db.VarChar(10)
+  num_lote    String?               @db.VarChar(12)
+  dir_x       Float?                @db.Real
+  dir_y       Float?                @db.Real
+  dir_point   Unsupported("point")?
+  concatenado String?
+  ubigeo      String?               @db.VarChar(6)
+
+  @@map("tmp_puertas_arequipa")
+  @@ignore
+  @@schema("public")
+}
+
+model und_marca_imagen {
+  und_img_id    Int                   @id(map: "pk_und_marca_imagen") @default(autoincrement())
+  und_marc_id   Int?
+  img_path      String?               @db.VarChar(150)
+  img_fecha     DateTime?             @db.Timestamp(6)
+  img_gps       Unsupported("point")?
+  req_und_marca req_und_marca?        @relation(fields: [und_marc_id], references: [und_marc_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_und_marc_img")
+
+  @@schema("public")
+}
+
+model unidad_betos {
+  und_beto_id Int       @id(map: "pk_unidad_betos") @default(autoincrement())
+  unidad_id   Int?
+  supp_id     Int?      @db.SmallInt
+  mbeto_id    Int?      @db.SmallInt
+  fec_beto    DateTime? @db.Date
+  obs_beto    String?   @db.VarChar(500)
+  usuario_id  Int?
+  fec_update  DateTime? @db.Timestamp(6)
+  unidades    unidades? @relation(fields: [unidad_id], references: [unidad_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_und_beto")
+  supplier    supplier? @relation(fields: [supp_id], references: [supp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_und_beto_supp")
+  usuarios    usuarios? @relation(fields: [usuario_id], references: [usuario_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_und_beto_usu")
+
+  @@schema("public")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model unidad_document {
+  unidad_id    Int
+  und_tdoc     Int       @db.SmallInt
+  fec_registro DateTime? @db.Date
+  fec_vence    DateTime? @db.Date
+  doc_url      String?   @db.VarChar(200)
+  doc_estado   Boolean?
+  fec_upload   DateTime? @db.Timestamp(6)
+  usuario_id   Int?
+  supp_id      Int?
+  unidades     unidades  @relation(fields: [unidad_id], references: [unidad_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_unidad_doc")
+
+  @@ignore
+  @@schema("public")
+}
+
+model unidad_homo {
+  homo_id     Int       @id(map: "pk_unidad_homo") @default(autoincrement())
+  unidad_id   Int?
+  supp_id     Int?
+  homo_estado Int?      @db.SmallInt
+  fec_homo    DateTime? @db.Timestamp(6)
+  usuario_id  Int?
+  supplier    supplier? @relation(fields: [supp_id], references: [supp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_homo_supp")
+  unidades    unidades? @relation(fields: [unidad_id], references: [unidad_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_homo_unidad")
+  usuarios    usuarios? @relation(fields: [usuario_id], references: [usuario_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_homo_usu")
+
+  @@schema("public")
+}
+
+model unidad_medida {
+  unidad_id     Int      @id(map: "pk_unidad_medida")
+  und_largo     Decimal? @db.Decimal(8, 2)
+  und_ancho     Decimal? @db.Decimal(8, 2)
+  und_alto      Decimal? @db.Decimal(8, 2)
+  und_peso      Decimal? @db.Decimal(8, 2)
+  und_volumen   Decimal? @db.Decimal(8, 2)
+  und_brand     Boolean?
+  und_m_largo   Decimal? @db.Decimal(8, 2)
+  und_m_ancho   Decimal? @db.Decimal(8, 2)
+  und_m_alto    Decimal? @db.Decimal(8, 2)
+  und_m_peso    Decimal? @db.Decimal(8, 2)
+  und_categoria Int?     @db.SmallInt
+  unidades      unidades @relation(fields: [unidad_id], references: [unidad_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_und_medida")
+
+  @@schema("public")
+}
+
+model unidad_move {
+  und_mov_id  Int       @id(map: "pk_unidad_move") @default(autoincrement())
+  unidad_id   Int?
+  fec_ingreso DateTime? @db.Date
+  odo_ingreso Int?
+  fec_baja    DateTime? @db.Date
+  odo_salida  Int?
+  und_estado  Boolean?
+  usuario_id  Int?
+  fec_upgrade DateTime? @db.Timestamp(6)
+  supp_id     Int?
+  usuarios    usuarios? @relation(fields: [usuario_id], references: [usuario_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_und_mov_usu")
+  unidades    unidades? @relation(fields: [unidad_id], references: [unidad_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_unidad_move")
+
+  @@schema("public")
+}
+
+model unidad_service {
+  unidad_id  Int
+  area_id    Int        @db.SmallInt
+  fec_desde  DateTime?  @db.Date
+  usuario_id Int?
+  und_estado Boolean?
+  areas_ruta areas_ruta @relation(fields: [area_id], references: [area_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_und_serv_areas")
+  unidades   unidades   @relation(fields: [unidad_id], references: [unidad_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_und_servi_und")
+
+  @@id([unidad_id, area_id], map: "pk_unidad_service")
+  @@schema("public")
+}
+
+model unidad_sucursal {
+  unidad_id   Int
+  sucursal_id Int       @db.SmallInt
+  suc_main    Boolean?
+  fec_active  DateTime? @db.Date
+  fec_baja    DateTime? @db.Date
+  usuario_id  Int?
+  und_estado  Boolean?
+  unidades    unidades  @relation(fields: [unidad_id], references: [unidad_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_unidad_suc")
+  sucursal    sucursal  @relation(fields: [sucursal_id], references: [sucursal_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_unidad_suc_suc")
+
+  @@id([unidad_id, sucursal_id], map: "pk_unidad_sucursal")
+  @@schema("public")
+}
+
+model unidad_tipos {
+  tund_id      Int      @id(map: "pk_unidad_tipos") @db.SmallInt
+  tund_code    String?  @db.VarChar(4)
+  tund_descri  String?  @db.VarChar(60)
+  tund_tnl     Decimal? @db.Decimal(4, 2)
+  tund_peso    Decimal? @db.Decimal(4, 2)
+  tund_vol_m3  Decimal? @db.Decimal(4, 2)
+  tund_lh_serv Boolean?
+  tund_estado  Boolean?
+
+  @@schema("public")
+}
+
+model unidades {
+  unidad_id       Int               @id(map: "pk_unidades") @default(autoincrement())
+  und_placa       String            @unique(map: "unq_unidades") @db.Char(10)
+  supp_id         Int?
+  tund_id         Int?              @db.SmallInt
+  und_marca       Int?              @db.SmallInt
+  und_modelo      Int?              @db.SmallInt
+  und_color       Int?              @db.SmallInt
+  und_year        Int?              @db.SmallInt
+  und_nserie      String?           @db.VarChar(25)
+  und_tcombu      Int?              @db.SmallInt
+  und_cmb_capa    Decimal?          @db.Decimal(8, 2)
+  und_homo        Int?              @db.SmallInt
+  und_estado      Boolean?
+  req_und_marca   req_und_marca[]
+  req_unidades    req_unidades[]
+  unidad_betos    unidad_betos[]
+  unidad_document unidad_document[] @ignore
+  unidad_homo     unidad_homo[]
+  unidad_medida   unidad_medida?
+  unidad_move     unidad_move[]
+  unidad_service  unidad_service[]
+  unidad_sucursal unidad_sucursal[]
+  supplier        supplier?         @relation(fields: [supp_id], references: [supp_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_und_supp")
+
+  @@schema("public")
+}
+
+model users_phone {
+  id           BigInt @id @default(autoincrement())
+  phone_number String @unique @db.VarChar(20)
+  country_code String @db.VarChar(10)
+  device_model String @db.VarChar(255)
+
+  @@index([phone_number], map: "users_phone_phone_number_6ee7eed1_like")
+  @@schema("public")
+}
+
+model users_user {
+  id             BigInt   @id @default(autoincrement())
+  first_name     String   @db.VarChar(100)
+  last_name      String   @db.VarChar(100)
+  date_of_birth  DateTime @db.Date
+  contact_number String   @db.VarChar(15)
+  email          String   @db.VarChar(254)
+  address        String
+
+  @@schema("public")
+}
+
+model usuarios {
+  usuario_id    Int             @id(map: "pk_usuarios") @default(autoincrement())
+  usu_nombre    String?         @db.VarChar(80)
+  id_usu_api    Int?            @unique(map: "idx_usuarios_id_usu_api")
+  usu_acceso    String?         @db.VarChar(60)
+  per_id        Int?
+  direccion_bad direccion_bad[]
+  direccion_log direccion_log[]
+  geo_asistido  geo_asistido[]
+  geo_new_door  geo_new_door[]
+  geomap_log    geomap_log[]
+  lote_status   lote_status[]
+  nb_grupo      nb_grupo[]
+  novedad_move  novedad_move[]
+  novedades_ao  novedades_ao[]
+  personal_docs personal_docs[]
+  personal_homo personal_homo[]
+  personal_move personal_move[]
+  plan_recursos plan_recursos[]
+  req_horarios  req_horarios[]
+  req_personal  req_personal[]
+  req_und_marca req_und_marca[]
+  req_unidades  req_unidades[]
+  route_status  route_status[]
+  suc_cobertura suc_cobertura[]
+  unidad_betos  unidad_betos[]
+  unidad_homo   unidad_homo[]
+  unidad_move   unidad_move[]
+
+  @@schema("public")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model vl_max_bot_id {
+  max Int?
+
+  @@ignore
+  @@schema("public")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model vl_plan_rec_id {
+  plan_rec_id Int?
+
+  @@ignore
+  @@schema("public")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model vl_rrop_id {
+  rrop_id Int?
+
+  @@ignore
+  @@schema("public")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by Prisma Client.
+model vs_resultado {
+  jsonb_agg Json?
+
+  @@ignore
+  @@schema("public")
+}
+
+model zonas {
+  zona_id     Int                @id(map: "pk_zonas") @default(autoincrement())
+  ciu_id      Int?               @db.SmallInt
+  zona_codigo String?            @db.VarChar(8)
+  area_id     Int?               @db.SmallInt
+  zona_color  String?            @db.VarChar(10)
+  zona_descri String?            @db.VarChar(60)
+  zona_estado Boolean?
+  sucursal_id Int?               @db.SmallInt
+  usuario_id  Int?
+  fec_update  DateTime?          @db.Date
+  geo_zonas   geo_zonas[]
+  lote_ruta   lote_ruta[]
+  routes      routes[]
+  gis_ciudad  public_gis_ciudad? @relation(fields: [ciu_id], references: [ciu_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_zon_gis_ciu")
+  zonas_mapa  zonas_mapa[]
+
+  @@index([ciu_id], map: "idx_zonas_ciu_id")
+  @@index([zona_id], map: "idx_zonas_zona_id")
+  @@schema("public")
+}
+
+model zonas_mapa {
+  zon_map_id  Int                   @id(map: "pk_zonas_mapa") @default(autoincrement())
+  zona_id     Int                   @default(autoincrement())
+  map_sequenc Int?                  @db.SmallInt
+  map_point   Unsupported("point")?
+  map_estado  Boolean?
+  usuario_id  Int?
+  fec_update  DateTime?             @db.Date
+  zonas       zonas                 @relation(fields: [zona_id], references: [zona_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_zon_map_zon")
+
+  @@schema("public")
+}
